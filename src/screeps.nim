@@ -97,9 +97,8 @@ type
 
   RoomObject* = ref RoomObjectObj
 
-  CreepObj* {.exportc.} = object
+  CreepObj* {.exportc.} = object of RoomObjectObj
     name: cstring
-    room: Room
     body: seq[BodyPart]
     memory: pointer # access with creep.mem
     carry: JSAssoc[cstring, int]
@@ -299,6 +298,9 @@ var memory* {.noDecl, importc: "Memory".}: Memory
 
 proc getObjectById*(game: Game, id: cstring, what: typedesc): what {.importcpp: "#.getObjectById(#)".}
 
+proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
+  {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
+
 proc find*(room: Room, what: typedesc): seq[what] =
   result = @[]
   when what is Source:
@@ -377,6 +379,7 @@ var targets = creep.room.findStructures(opts)
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
+proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 
 proc moveTo*(creep: Creep, pos: RoomPosition): int {.importcpp, discardable.}

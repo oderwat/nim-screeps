@@ -15,13 +15,16 @@ type Actions = enum
   Charge
   Build
   Upgrade
+  Repair
 
 type Stats = ref object
   workers: int
   charging: int
   building: int
   upgrading: int
+  repairing: int
   idle: int
+  refilling: int
   error: int
 
 type
@@ -82,7 +85,19 @@ screepsLoop: # this conaints the main loop which is exported to the game
       elif cm.action == Build:
         var target = game.getObjectById(cm.targetId, ConstructionSite)
         if creep.build(target) != OK:
-          creep.moveTo(target)
+          if creep.moveTo(target) == ERR_INVALID_TARGET:
+            cm.targetId = nil
+            cm.action = Idle
+        else:
+          cm.targetId = nil
+          cm.action = Idle
+
+      elif cm.action == Repair:
+        var target = game.getObjectById(cm.targetId, Structure)
+        if creep.repair(target) != OK:
+          if creep.moveTo(target) == ERR_INVALID_TARGET:
+            cm.targetId = nil
+            cm.action = Idle
         else:
           cm.targetId = nil
           cm.action = Idle
@@ -92,7 +107,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
           creep.moveTo(creep.room.controller)
 
       if cm.action == Idle:
-          creep.moveTo(game.flags["Flag1"])
           cm.action = Upgrade
 
       #for target in targets:
@@ -133,28 +147,33 @@ screepsLoop: # this conaints the main loop which is exported to the game
         inc stats.building
       elif cm.action == Upgrade:
         inc stats.upgrading
+      elif cm.action == Repair:
+        inc stats.repairing
       elif cm.action == Idle:
         inc stats.idle
       else:
         inc stats.error
+      if cm.refilling:
+        inc stats.refilling
       inc idx
 
-    var targets = room.find(ConstructionSite)
+    var csites = room.find(ConstructionSite)
     # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
-    targets.sort() do (a, b: ConstructionSite) -> int:
+    csites.sort() do (a, b: ConstructionSite) -> int:
       (a.progressTotal - a.progress) - (b.progressTotal - b.progress)
 
-    if targets.len > 0:
+    if csites.len > 0:
       # we need at least one builder in this room
-      echo "having ", targets.len, " construction sites"
-      if stats.building < 10: # never more than 10
+      echo "having ", csites.len, " construction sites"
+      if stats.building < 6: # never more than 6
 
         if stats.idle > 0:
           for creep in creeps:
             let m = creep.mem(CreepMemory)
             if m.action == Idle:
               m.action = Build
-              m.targetId = targets[0].id
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
               inc stats.building
               dec stats.idle
               break;
@@ -164,7 +183,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.mem(CreepMemory)
             if m.action == Upgrade:
               m.action = Build
-              m.targetId = targets[0].id
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
               inc stats.building
               dec stats.upgrading
               break;
@@ -174,11 +194,67 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.mem(CreepMemory)
             if m.action == Charge:
               m.action = Build
-              m.targetId = targets[0].id
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
               inc stats.building
               dec stats.charging
               break;
 
+    var repairs = room.find(Structure) do (s: Structure) -> bool:
+      s.hits < s.hitsMax
+
+    # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
+    repairs.sort() do (a, b: Structure) -> int:
+      (a.hitsMax - a.hits) - (b.hitsMax - b.hits)
+
+    if repairs.len > 0:
+      # we need at least one builder in this room
+      echo "having ", repairs.len, " structures to repair"
+      if stats.repairing < 6: # never more than 6
+
+        if stats.idle > 0:
+          for creep in creeps:
+            let m = creep.mem(CreepMemory)
+            if m.action == Idle:
+              m.action = Repair
+              var closest = creep.pos.findClosestByPath(repairs)
+              m.targetId = closest.id
+              inc stats.repairing
+              dec stats.idle
+              break;
+
+        elif stats.upgrading > 2:
+          for creep in creeps:
+            let m = creep.mem(CreepMemory)
+            if m.action == Upgrade:
+              m.action = Repair
+              var closest = creep.pos.findClosestByPath(repairs)
+              m.targetId = closest.id
+              inc stats.repairing
+              dec stats.upgrading
+              break;
+
+        elif stats.building > 3:
+          for creep in creeps:
+            let m = creep.mem(CreepMemory)
+            if m.action == Build:
+              m.action = Repair
+              var closest = creep.pos.findClosestByPath(repairs)
+              m.targetId = closest.id
+              inc stats.repairing
+              dec stats.building
+              break;
+
+        elif stats.charging > 4:
+          for creep in creeps:
+            let m = creep.mem(CreepMemory)
+            if m.action == Charge:
+              m.action = Repair
+              var closest = creep.pos.findClosestByPath(repairs)
+              m.targetId = closest.id
+              inc stats.repairing
+              dec stats.charging
+              break;
     #for target in targets:
     #  echo target.progressTotal
 
@@ -186,7 +262,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #  #echo creep.name
     #  creep.mem(CreepMemory).role == Worker
 
-    if stats.workers < 10:
+    if stats.workers < 12:
       if room.energyAvailable >= cost:
         for spawn in game.spawns:
           let rm = CreepMemory(role: Worker, refilling: true, action: Charge)
