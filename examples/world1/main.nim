@@ -8,15 +8,15 @@
 import screeps
 
 type Roles = enum
-  Worker
-  Fighter
+  Worker    # 0
+  Fighter   # 1
 
 type Actions = enum
-  Idle
-  Charge
-  Build
-  Upgrade
-  Repair
+  Idle      # 0
+  Charge    # 1
+  Build     # 2
+  Upgrade   # 3
+  Repair    # 4
 
 type Stats = ref object
   workers: int
