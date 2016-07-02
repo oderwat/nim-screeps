@@ -49,8 +49,11 @@ type
 
   Game* = ref GameObj
 
+  #MemoryEntryObj* = object
+  MemoryEntry* = ref object of RootObj #MemoryEntryObj
+
   MemoryObj*  {.exportc.} = object
-    creeps: JSAssoc[cstring, Creep]
+    creeps: JSAssoc[cstring, MemoryEntry]
 
   Memory* = ref MemoryObj
 
@@ -74,7 +77,7 @@ type
   RoomObj* {.exportc.} = object
     name: cstring
     mode: cstring
-    memory: pointer
+    memory: MemoryEntry
     controller: StructureController
     storage: pointer
     terminal: pointer
@@ -100,7 +103,7 @@ type
   CreepObj* {.exportc.} = object of RoomObjectObj
     name: cstring
     body: seq[BodyPart]
-    memory: pointer # access with creep.mem
+    memory: MemoryEntry
     carry: JSAssoc[cstring, int]
     carryCapacity: int
 
@@ -254,8 +257,10 @@ iterator keys*[K,V](d: JSAssoc[K,V]): K =
 
 # screeps specials
 
-proc createCreep*[M](spawn: StructureSpawn, body: openArray[BodyPart], name: cstring, memory: M): cstring =
-  {.emit: "`result` = `spawn`.createCreep(`body`, `name`, `memory`);".}
+proc createCreep*(spawn: StructureSpawn, body: openArray[BodyPart], name: cstring, memory: MemoryEntry): cstring =
+  # I am hacking the inherit information from the object because screeps deadlocks
+  # if its there and it is not needed for real (I think / TODO: I need to ask @araq about it!)
+  {.emit: "delete `memory`.m_type; `result` = `spawn`.createCreep(`body`, `name`, `memory`);".}
 
 proc describeExits*(map: Map, roomName: cstring): JSAssoc[cstring, cstring] {.importcpp.}
 #  {.emit: "`map`.describeExits(`roomName`)\n".}
@@ -277,8 +282,11 @@ proc calcEnergyCost*(body: openArray[BodyPart]): int =
     elif b == TOUGH:
       result += 10
 
-proc mem*(creep: Creep, ty: typedesc): ty =
-  result = cast[ty](creep.memory)
+#proc mem*(creep: Creep, ty: typedesc): ty =
+#  result = cast[ty](creep.memory)
+
+#proc creepsMem*(memory: Memory, ty: typedesc): JSAssoc[cstring, ty] =
+#  result = cast[JSAssoc[cstring, ty]](memory.creeps)
 
 proc carrySum*(creep: Creep): int =
   for kind, value in creep.carry:

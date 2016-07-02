@@ -30,14 +30,26 @@ type Stats = ref object
   error: int
 
 type
-  CreepMemory = ref object
+  CreepMemory = ref object of MemoryEntry
     role: Roles
     action: Actions
     refilling: bool
     targetId: cstring # Id of RoomObject
     sourceId: cstring # which source to use
 
+  RoomMemory = ref object of MemoryEntry
+    war: bool
+
+# convenience templates for easy typed memory access
+template mem*(creep: Creep): CreepMemory = creep.memory.CreepMemory
+template mem*(room: Room): RoomMemory = roomp.memory.RoomMemory
+
+# would work but easier leads to errors I guess
+#converter creepMemory(mem: MemoryEntry): CreepMemory = mem.CreepMemory
+#converter roomMemory(mem: MemoryEntry): RoomMemory = mem.RoomMemory
+
 screepsLoop: # this conaints the main loop which is exported to the game
+  console "tick"
 
   proc energyNeeded(creep: Creep): auto =
     result = creep.room.find(Structure) do (struct: Structure) -> bool:
@@ -56,7 +68,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
       else: result = false
 
   proc roleWorker(creep: Creep) =
-    var cm = creep.mem(CreepMemory)
+    var cm = creep.memory.CreepMemory # convert
 
     # so we can act on the same tick
     if creep.carry.energy == 0:
@@ -135,6 +147,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #let exits = game.map.describeExits(room.name)
     #for k, v in exits:
     #  echo "Exit: ", k, " > ", v
+    var rm = room.memory.RoomMemory
+    template war: bool = rm.war
 
     var workBody: seq[BodyPart]
     var fightBody: seq[BodyPart]
@@ -153,7 +167,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     let creeps = room.findMy(Creep)
     var idx = 0
     for creep in creeps:
-      let cm = creep.mem(CreepMemory)
+      let cm = creep.memory.CreepMemory
       if cm.role == Worker:
         # naive sources "assignment"
         if cm.sourceId == nil:
@@ -178,8 +192,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
         inc stats.refilling
       inc idx
 
-    var war = false
-
     var csites = room.find(ConstructionSite)
     # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
     csites.sort() do (a, b: ConstructionSite) -> int:
@@ -188,11 +200,18 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if csites.len > 0:
       # we need at least one builder in this room
       echo "having ", csites.len, " construction sites"
+      #for site in csites:
+      #  echo site.id, " ", site.progressTotal - site.progress
+
+      # shrink the number of repair sites to 4
+      if csites.len > 2:
+        csites = csites[0..2]
+
       if stats.building < 6: # never more than 6
 
         if stats.idle > 0:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Idle:
               m.action = Build
               var closest = creep.pos.findClosestByPath(csites)
@@ -203,7 +222,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
         elif stats.upgrading > (if war: 0 else: 2):
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Upgrade:
               m.action = Build
               var closest = creep.pos.findClosestByPath(csites)
@@ -214,7 +233,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
         elif stats.charging > 4:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Charge:
               m.action = Build
               var closest = creep.pos.findClosestByPath(csites)
@@ -226,18 +245,26 @@ screepsLoop: # this conaints the main loop which is exported to the game
     var repairs = room.find(Structure) do (s: Structure) -> bool:
       s.hits < s.hitsMax
 
-    # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
+    # sort by structures with fewest health
     repairs.sort() do (a, b: Structure) -> int:
-      (a.hitsMax - a.hits) - (b.hitsMax - b.hits)
+      a.hits - b.hits
 
     if repairs.len > 0:
       # we need at least one builder in this room
       echo "having ", repairs.len, " structures to repair"
+
+      # shrink the number of repair sites to 4
+      if repairs.len > 4:
+        repairs = repairs[0..3]
+
+      #for site in repairs:
+      #  echo site.id, " ", site.hitsMax - site.hits
+
       if stats.repairing < 6: # never more than 6
 
         if stats.idle > 0:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Idle:
               m.action = Repair
               var closest = creep.pos.findClosestByPath(repairs)
@@ -248,7 +275,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
         elif stats.upgrading > 0:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Upgrade:
               m.action = Repair
               var closest = creep.pos.findClosestByPath(repairs)
@@ -259,7 +286,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
         elif stats.building > 3:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Build:
               m.action = Repair
               var closest = creep.pos.findClosestByPath(repairs)
@@ -270,7 +297,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
         elif stats.charging > 4:
           for creep in creeps:
-            let m = creep.mem(CreepMemory)
+            let m = creep.memory.CreepMemory
             if m.action == Charge:
               m.action = Repair
               var closest = creep.pos.findClosestByPath(repairs)
@@ -278,14 +305,15 @@ screepsLoop: # this conaints the main loop which is exported to the game
               inc stats.repairing
               dec stats.charging
               break;
-    #for target in targets:
-    #  echo target.progressTotal
 
     #let workers = filterCreeps() do (creep: Creep) -> bool:
     #  #echo creep.name
     #  creep.mem(CreepMemory).role == Worker
 
-    if war and stats.fighters < 6 and stats.workers >= 2:
+    dump stats
+    #if true: return
+
+    if stats.fighters < 6 and stats.workers >= 2:
       echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
       if room.energyAvailable >=  fightBody.calcEnergyCost:
         for spawn in game.spawns:
@@ -304,6 +332,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
     dump stats
 
+  var deads = 0
+  var redistribute = false # when workers die
   # Delete for dead creeps from memory
   # Watch out: A new spawn appears first in memory, then in game
   # be careful not to delete memory for your "next" creep
@@ -311,16 +341,37 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #echo "memory: ", name
     #dump game.creeps[name]
     if not game.creeps.hasKey name:
+      #var creepsmem = memory.creepsMem(CreepMemory)
+      if memory.creeps[name].CreepMemory.role == Worker:
+        redistribute = true
       memory.creeps.delete name
+      inc deads
       echo "Clearing non-existing creep memory: ", name
 
-  # Running the room Controller for each room we pocess
+  if deads > 0:
+    echo "R.I.P. x ", deads
+  #
+  # Running some tasks and the room Controller for each room we pocess
+  #
   for room in game.rooms:
+    # if we have deads
+    if redistribute:
+      # redistribute sources
+      let sources = room.find(Source)
+      let creeps = room.findMy(Creep)
+      var idx = 0
+      for creep in creeps:
+        let cm = creep.memory.CreepMemory
+        if cm.role == Worker:
+          cm.sourceId = sources[idx mod sources.len].id
+          inc idx
+    # the main room controler logic
     roomControl(room)
+
 
   # let the creeps do their jobs
   for creep in game.creeps:
-    let cm = creep.mem(CreepMemory)
+    let cm = creep.memory.CreepMemory
     case cm.role:
       of Worker: creep.roleWorker
       of Fighter: creep.roleFighter
