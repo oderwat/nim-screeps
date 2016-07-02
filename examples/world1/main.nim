@@ -105,7 +105,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #  echo "Exit: ", k, " > ", v
 
     var body: seq[BodyPart]
-    if room.energyCapacityAvailable <= 300:
+    if room.energyCapacityAvailable <= 500:
       #body = @[WORK, WORK, CARRY, MOVE]
       body = @[WORK, CARRY, CARRY, MOVE, MOVE]
     else:
