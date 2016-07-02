@@ -87,9 +87,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
         cm.refilling = false
     else:
       var needEnergy = energyNeeded(creep)
-
+      # need some kind of priority list here
       if cm.action == Charge:
-
         if needEnergy.len > 0:
           if creep.transfer(needEnergy[0], RESOURCE_TYPE_ENERGY) != OK:
             creep.moveTo(needEnergy[0])
@@ -102,7 +101,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
           if creep.moveTo(target) == ERR_INVALID_TARGET:
             cm.targetId = nil
             cm.action = Idle
-        else:
+        elif target.progress == target.progressTotal:
           cm.targetId = nil
           cm.action = Idle
 
@@ -112,7 +111,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
           if creep.moveTo(target) == ERR_INVALID_TARGET:
             cm.targetId = nil
             cm.action = Idle
-        else:
+        elif target.hits == target.hitsMax:
           cm.targetId = nil
           cm.action = Idle
 
