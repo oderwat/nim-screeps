@@ -347,7 +347,7 @@ proc findMy*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what]
     {.emit: "`result` = `room`.find(FIND_MY_CREEPS, { filter: `filter` });\n".}
   else: {.error: "impossible findMy".}
 
-proc findHostile*(room: Room, what: typedesc): seq[what] {.compiletime} =
+proc findHostile*(room: Room, what: typedesc): seq[what] =
   result = @[]
   when what is Structure:
     {.emit: "`result` = `room`.find(FIND_HOSTILE_STRUCTURES);\n".}
@@ -360,7 +360,7 @@ proc findHostile*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[
   when what is Structure:
     {.emit: "`result` = `room`.find(FIND_HOSTILE_STRUCTURES, { filter: `filter` });\n".}
   elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_MY_CREEPS, { filter: `filter` });\n".}
+    {.emit: "`result` = `room`.find(FIND_HOSTILE_CREEPS, { filter: `filter` });\n".}
   else: {.error: "impossible findHostile".}
 
 #[ something like this would also work:
@@ -380,6 +380,7 @@ proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
+proc attack*(creep: Creep, hostile: Creep): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 
 proc moveTo*(creep: Creep, pos: RoomPosition): int {.importcpp, discardable.}

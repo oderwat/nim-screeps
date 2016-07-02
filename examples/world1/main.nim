@@ -9,6 +9,7 @@ import screeps
 
 type Roles = enum
   Worker
+  Fighter
 
 type Actions = enum
   Idle
@@ -19,6 +20,7 @@ type Actions = enum
 
 type Stats = ref object
   workers: int
+  fighters: int
   charging: int
   building: int
   upgrading: int
@@ -103,14 +105,30 @@ screepsLoop: # this conaints the main loop which is exported to the game
           cm.action = Idle
 
       elif cm.action == Upgrade:
-        if creep.upgradeController(creep.room.controller) != OK:
-          creep.moveTo(creep.room.controller)
+        # just for now
+        if needEnergy.len > 0:
+          cm.action = Charge
+        else:
+          if creep.upgradeController(creep.room.controller) != OK:
+            creep.moveTo(creep.room.controller)
 
       if cm.action == Idle:
+        if needEnergy.len > 0:
+          cm.action = Charge
+        else:
           cm.action = Upgrade
 
       #for target in targets:
       #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id
+
+  proc roleFighter(creep: Creep) =
+    #var cm = creep.mem(CreepMemory)
+
+    var hostiles = creep.room.findHostile(CREEP)
+    if hostiles.len > 0:
+      let closest = creep.pos.findClosestByPath(hostiles)
+      if creep.attack(closest) != OK:
+        creep.moveTo(closest)
 
   proc roomControl(room: Room) =
     # is null for sim
@@ -118,14 +136,15 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #for k, v in exits:
     #  echo "Exit: ", k, " > ", v
 
-    var body: seq[BodyPart]
+    var workBody: seq[BodyPart]
+    var fightBody: seq[BodyPart]
     if room.energyCapacityAvailable <= 500:
       #body = @[WORK, WORK, CARRY, MOVE]
-      body = @[WORK, CARRY, CARRY, MOVE, MOVE]
+      workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
+      fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, ATTACK, ATTACK]
     else:
-      body = @[WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
-
-    let cost = body.calcEnergyCost
+      workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
+      fightBody = @[ATTACK, ATTACK, TOUGH, TOUGH, MOVE, MOVE, MOVE]
 
     echo "Room Capacity: ", room.energyAvailable, " / ", room.energyCapacityAvailable
 
@@ -140,6 +159,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
         if cm.sourceId == nil:
           cm.sourceId = sources[idx mod sources.len].id
         inc stats.workers
+      elif cm.role == Fighter:
+        inc stats.fighters
 
       if cm.action == Charge:
         inc stats.charging
@@ -156,6 +177,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       if cm.refilling:
         inc stats.refilling
       inc idx
+
+    var war = false
 
     var csites = room.find(ConstructionSite)
     # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
@@ -178,7 +201,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.idle
               break;
 
-        elif stats.upgrading > 2:
+        elif stats.upgrading > (if war: 0 else: 2):
           for creep in creeps:
             let m = creep.mem(CreepMemory)
             if m.action == Upgrade:
@@ -223,7 +246,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.idle
               break;
 
-        elif stats.upgrading > 2:
+        elif stats.upgrading > 0:
           for creep in creeps:
             let m = creep.mem(CreepMemory)
             if m.action == Upgrade:
@@ -262,13 +285,22 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #  #echo creep.name
     #  creep.mem(CreepMemory).role == Worker
 
-    if stats.workers < 12:
-      if room.energyAvailable >= cost:
+    if war and stats.fighters < 6 and stats.workers >= 2:
+      echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+      if room.energyAvailable >=  fightBody.calcEnergyCost:
+        for spawn in game.spawns:
+          let rm = CreepMemory(role: Fighter, refilling: true, action: Charge)
+          var name = spawn.createCreep(fightBody, nil, rm)
+          if name != "":
+            echo "New Fighter ", name, " is spawned"
+    elif stats.workers < 12:
+      echo "need workers (", workBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+      if room.energyAvailable >=  workBody.calcEnergyCost:
         for spawn in game.spawns:
           let rm = CreepMemory(role: Worker, refilling: true, action: Charge)
-          var name = spawn.createCreep(body, nil, rm)
+          var name = spawn.createCreep(workBody, nil, rm)
           if name != "":
-            echo "New creep ", name, " is spawned"
+            echo "New Worker ", name, " is spawned"
 
     dump stats
 
@@ -291,4 +323,5 @@ screepsLoop: # this conaints the main loop which is exported to the game
     let cm = creep.mem(CreepMemory)
     case cm.role:
       of Worker: creep.roleWorker
+      of Fighter: creep.roleFighter
       else: echo "unknown creep role ", creep.name
