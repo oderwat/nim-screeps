@@ -71,7 +71,11 @@ cd ~/nim-screeps/examples/sim1/
 nim build main.nim
 ```
 
-Select `sim1` from the branches in the Screeps client inside the Simulator (Training Mode).
+Select `sim1` from the branches in the Screeps client inside the Simulator (Training Mode) and create the `Spawn1`.
+
+After some time it should look like this:
+
+![Screeps Screenshot](assets/sim1.gif)
 
 ### Example: world1
 
