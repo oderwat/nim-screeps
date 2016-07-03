@@ -49,7 +49,14 @@ template mem*(room: Room): RoomMemory = roomp.memory.RoomMemory
 #converter roomMemory(mem: MemoryEntry): RoomMemory = mem.RoomMemory
 
 screepsLoop: # this conaints the main loop which is exported to the game
-  console "tick"
+  #console "tick"
+
+  # initialize room memory (once)
+  for name, rm in memory.rooms:
+    if rm.isEmpty:
+      echo "init room ", name
+      var init: RoomMemory
+      memory.rooms[name] = init
 
   proc energyNeeded(creep: Creep): auto =
     result = creep.room.find(Structure) do (struct: Structure) -> bool:
@@ -146,8 +153,9 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #let exits = game.map.describeExits(room.name)
     #for k, v in exits:
     #  echo "Exit: ", k, " > ", v
+
     var rm = room.memory.RoomMemory
-    template war: bool = rm.war
+    let war = rm.war
 
     var workBody: seq[BodyPart]
     var fightBody: seq[BodyPart]
@@ -310,9 +318,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #  creep.mem(CreepMemory).role == Worker
 
     dump stats
-    #if true: return
 
-    if stats.fighters < 6 and stats.workers >= 2:
+    if war and stats.fighters < 6 and stats.workers >= 2:
       echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
       if room.energyAvailable >=  fightBody.calcEnergyCost:
         for spawn in game.spawns:

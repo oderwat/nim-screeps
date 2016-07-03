@@ -54,6 +54,7 @@ type
 
   MemoryObj*  {.exportc.} = object
     creeps: JSAssoc[cstring, MemoryEntry]
+    rooms:  JSAssoc[cstring, MemoryEntry]
 
   Memory* = ref MemoryObj
 
@@ -224,6 +225,9 @@ const MODE_WORLD* = "world".ModeType
 const MODE_ARENA* = "arena".ModeType
 
 converter bodyPart(b: BodyPart): string = $(b.cstring)
+
+proc isUndefined*[T](x: T): bool {.importcpp: "((#)==undefined)".}
+proc isEmpty*[T](x: T): bool {.importcpp: "((#)=={})".}
 
 proc `[]`*[K,V](d: JSAssoc[K,V]; k: K): V {.importcpp: "#[#]".}
 proc `[]=`*[K,V](d: JSAssoc[K,V]; k: K; v: V) {.importcpp: "#[#] = #".}
