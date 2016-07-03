@@ -28,6 +28,7 @@ type
   StructureType* = distinct cstring
   ResourceType* = distinct cstring
   ModeType* = distinct cstring
+  LookType* = distinct cstring
 
   GlobalControlLevelObj {.exportc.} = object
     level: int
@@ -75,6 +76,11 @@ type
 
   SurvivalInfo* = ref SurvivalInfoObj
 
+  UserObj* {.exportc.} = object
+    username: cstring
+
+  User* = ref UserObj
+
   RoomObj* {.exportc.} = object
     name: cstring
     mode: cstring
@@ -101,59 +107,6 @@ type
 
   RoomObject* = ref RoomObjectObj
 
-  CreepObj* {.exportc.} = object of RoomObjectObj
-    name: cstring
-    body: seq[BodyPart]
-    memory: MemoryEntry
-    carry: JSAssoc[cstring, int]
-    carryCapacity: int
-
-  Creep* = ref CreepObj
-
-  SourceObj* {.exportc.} =  object of RoomObjectObj
-    energy: int
-    energyCapacity: int
-    id: cstring
-    ticksToRegeneration: int
-
-  Source* = ref SourceObj
-
-  FlagObj* {.exportc.} =  object of RoomObjectObj
-    name: cstring
-    color: cstring
-    secondaryColor: cstring
-    memory: pointer
-
-  Flag* = ref FlagObj
-
-  StructureObj* {.exportc.} =  object of RoomObjectObj
-    hits: int
-    hitsMax: int
-    id: cstring
-    structureType: StructureType
-
-  Structure* = ref StructureObj
-
-  StructureEnergyObj* {.exportc.} = object of StructureObj
-    energy: int
-    energyCapacity: int
-
-  StructureEnergy* = ref StructureEnergyObj
-
-  StructureSpawnObj* = object of StructureEnergyObj
-    name: cstring
-    spawning: pointer
-    owner: User
-    my: bool
-
-  StructureSpawn* = ref StructureSpawnObj
-
-  StructureExtensionObj* = object of StructureEnergyObj
-  StructureExtension* = ref StructureExtensionObj
-
-  StructureTowerObj* = object of StructureEnergyObj
-  StructureTower* = ref StructureTowerObj
-
   ConstructionSiteObj* {.exportc.} = object of RoomObjectObj
     id: cstring
     my: bool
@@ -164,6 +117,56 @@ type
 
   ConstructionSite* = ref ConstructionSiteObj
 
+  CreepObj* {.exportc.} = object of RoomObjectObj
+    name: cstring
+    body: seq[BodyPart]
+    memory: MemoryEntry
+    carry: JSAssoc[cstring, int]
+    carryCapacity: int
+
+  Creep* = ref CreepObj
+
+  FlagObj* {.exportc.} =  object of RoomObjectObj
+    name: cstring
+    color: cstring
+    secondaryColor: cstring
+    memory: pointer
+
+  Flag* = ref FlagObj
+
+  # TODO: Mineral
+  # TODO: Nuke
+  # TODO: Resource
+
+  SourceObj* {.exportc.} =  object of RoomObjectObj
+    energy: int
+    energyCapacity: int
+    id: cstring
+    ticksToRegeneration: int
+
+  Source* = ref SourceObj
+
+  StructureObj* {.exportc.} =  object of RoomObjectObj
+    hits: int
+    hitsMax: int
+    id: cstring
+    structureType: StructureType
+
+  Structure* = ref StructureObj
+
+  OwnedStructureObj* = object of StructureObj
+    my: bool
+    owner: User
+
+  OwnedStructure* = ref OwnedStructureObj
+
+  # we use this for stuff which carries energy
+  EnergizedStructureObj* {.exportc.} = object of OwnedStructureObj
+    energy: int
+    energyCapacity: int
+
+  EnergizedStructure* = ref EnergizedStructureObj
+
   StructureControllerObj* {.exportc.} = object of StructureObj
     progress: int
     progressTotal: int
@@ -173,24 +176,117 @@ type
 
   StructureController* = ref StructureControllerObj
 
-  UserObj* {.exportc.} = object
-    username: cstring
+  StructureExtensionObj* = object of EnergizedStructureObj
+  StructureExtension* = ref StructureExtensionObj
 
-  User* = ref UserObj
+  # TODO: StructureExtractor
+  # TODO: StructureKeeperLair
+  # TODO: StructureLab
+  # TODO: StructureLink
+  # TODO: StructureNuker
+  # TODO: StructureObserver
+  # TODO: StructurePowerBank
+  # TODO: StructurePoweSpawn
+  # TODO: StructureRampart
+
+  StructureSpawnObj* = object of EnergizedStructureObj
+    name: cstring
+    spawning: pointer
+
+  StructureSpawn* = ref StructureSpawnObj
+
+  # TODO: StructureStorage
+  # TODO: StructureTerminal
+
+  StructureTowerObj* = object of EnergizedStructureObj
+  StructureTower* = ref StructureTowerObj
+
+  # TODO: StructureContainer
+  # TODO: StructurePortal
+  # TODO: StructureRoad
+  # TODO: StructureWall
 
   FindTargets* = enum
+    FIND_EXIT_TOP = 1
+    FIND_EXIT_RIGHT = 3
+    FIND_EXIT_BOTTOM = 5
+    FIND_EXIT_LEFT = 7
+    FIND_EXIT = 10
+    FIND_CREEPS = 101
+    FIND_MY_CREEPS = 102
+    FIND_HOSTILE_CREEPS = 103
+    FIND_SOURCES_ACTIVE = 104
     FIND_SOURCES = 105
-    FIND_DROPPED_RESOURCES
-    FIND_STRUCTURES
+    FIND_DROPPED_ENERGY = 106
+    FIND_STRUCTURES = 107
+    FIND_MY_STRUCTURES = 108
+    FIND_HOSTILE_STRUCTURES = 109
+    FIND_FLAGS = 110
+    FIND_CONSTRUCTION_SITES = 111
+    FIND_MY_SPAWNS = 112
+    FIND_HOSTILE_SPAWNS = 113
+    FIND_MY_CONSTRUCTION_SITES = 114
+    FIND_HOSTILE_CONSTRUCTION_SITES = 115
+    FIND_MINERALS = 116
+    FIND_NUKES = 117
+
+  Directions* = enum
+    TOP = 1
+    TOP_RIGHT = 2
+    RIGHT = 3
+    BOTTOM_RIGHT = 4
+    BOTTOM = 5
+    BOTTOM_LEFT = 6
+    LEFT = 7
+    TOP_LEFT = 8
+
+  Colors* = enum
+    COLOR_RED = 1
+    COLOR_PURPLE = 2
+    COLOR_BLUE = 3
+    COLOR_CYAN = 4
+    COLOR_GREEN = 5
+    COLOR_YELLOW = 6
+    COLOR_ORANGE = 7
+    COLOR_BROWN = 8
+    COLOR_GREY = 9
+    COLOR_WHITE = 10
+
+template FIND_DROPPED_RESOURCES* = FIND_DROPPED_ENERGY
 
 const OK* = 0
 const ERR_NOT_OWNER* = -1
 const ERR_NO_PATH* = -2
+const ERR_NAME_EXISTS* = -3
 const ERR_BUSY* = -4
+const ERR_NOT_FOUND* = -5
+const ERR_NOT_ENOUGH_ENERGY* = -6
+const ERR_NOT_ENOUGH_RESOURCES* = -6
+const ERR_NOT_ENOUGH_EXTENSIONS* = -6
 const ERR_INVALID_TARGET* = -7
+const ERR_FULL* = -8
 const ERR_NOT_IN_RANGE* = -9
+const ERR_INVALID_ARGS* = -10
 const ERR_TIRED* = -11
 const ERR_NO_BODYPART* = -12
+const ERR_RCL_NOT_ENOUGH* = -14
+const ERR_GCL_NOT_ENOUGH* = -15
+
+proc `==`*(a, b: LookType): bool {.borrow.}
+proc `$`*(a: LookType): string {.borrow.}
+
+const LOOK_CREEPS* = "creep".LookType
+const LOOK_ENERGY* = "energy".LookType
+const LOOK_RESOURCES* = "resource".LookType
+const LOOK_SOURCES* = "source".LookType
+const LOOK_MINERALS* = "mineral".LookType
+const LOOK_STRUCTURES* = "structure".LookType
+const LOOK_FLAGS* = "flag".LookType
+const LOOK_CONSTRUCTION_SITES* = "constructionSite".LookType
+const LOOK_NUKES* = "nuke".LookType
+const LOOK_TERRAIN* = "terrain".LookType
+
+const OBSTACLE_OBJECT_TYPES* = ["spawn", "creep", "wall", "source", "constructedWall", "extension", "link", "storage", "tower", "observer", "powerSpawn", "powerBank", "lab", "terminal", "nuker"]
 
 proc `==`*(a, b: BodyPart): bool {.borrow.}
 proc `$`*(a: BodyPart): string {.borrow.}
@@ -402,3 +498,101 @@ proc filterCreeps*(filter: proc(creep: Creep): bool): seq[Creep] =
   {.emit: "`result` = _.filter(Game.creeps, `filter`);\n".}
 
 proc sort* [T](objs: seq[T], sortcm: proc(a, b: T): int) {.importcpp: "#.sort(#)".}
+
+# A whole bunch of constant getting imported here
+# I am not sure if I want it like this though...
+
+var CONSTRUCTION_COST* {.noDecl, importc.}:  JSAssoc[cstring, int]
+var CONSTRUCTION_COST_ROAD_SWAMP_RATIO* {.noDecl, importc.}: int
+
+var CONTROLLER_LEVELS* {.noDecl, importc.}:  JSAssoc[int, int]
+var CONSTROLLER_STRUCTURES* {.noDecl, importc.}:  JSAssoc[cstring, JSAssoc[int, int]]
+var CONTROLLER_DOWNGRADE* {.noDecl, importc.}:  JSAssoc[int, int]
+var CONTROLLER_CLAIM_DOWNGRADE* {.noDecl, importc.}: float
+var CONTROLLER_RESERVE* {.noDecl, importc.}: int
+var CONTROLLER_RESERVE_MAX* {.noDecl, importc.}: int
+var CONTROLLER_MAX_UPGRADE_PER_TICK* {.noDecl, importc.}: int
+var CONTROLLER_ATTACK_BLOCKED_UPGRADE* {.noDecl, importc.}: int
+
+var TOWER_HITS* {.noDecl, importc.}: int
+var TOWER_CAPACITY* {.noDecl, importc.}: int
+var TOWER_ENERGY_COST* {.noDecl, importc.}: int
+var TOWER_POWER_ATTACK* {.noDecl, importc.}: int
+var TOWER_POWER_HEAL* {.noDecl, importc.}: int
+var TOWER_POWER_REPAIR* {.noDecl, importc.}: int
+var TOWER_OPTIMAL_RANGE* {.noDecl, importc.}: int
+var TOWER_FALLOFF_RANGE* {.noDecl, importc.}: int
+var TOWER_FALLOFF* {.noDecl, importc.}: float
+
+var OBSERVER_HITS* {.noDecl, importc.}: int
+var OBSERVER_RANGE* {.noDecl, importc.}: int
+
+var POWER_BANK_HITS* {.noDecl, importc.}: int
+var POWER_BANK_CAPACITY_MAX* {.noDecl, importc.}: int
+var POWER_BANK_CAPACITY_MIN* {.noDecl, importc.}: int
+var POWER_BANK_CAPACITY_CRIT* {.noDecl, importc.}: float
+var POWER_BANK_DECAY* {.noDecl, importc.}: int
+var POWER_BANK_HIT_BACK* {.noDecl, importc.}: float
+
+var POWER_SPAWN_HITS* {.noDecl, importc.}: int
+var POWER_SPAWN_ENERGY_CAPACITY* {.noDecl, importc.}: int
+var POWER_SPAWN_POWER_CAPACITY* {.noDecl, importc.}: int
+var POWER_SPAWN_ENERGY_RATIO* {.noDecl, importc.}: int
+
+var EXTRACTOR_HITS* {.noDecl, importc.}: int
+
+var LAB_HITS* {.noDecl, importc.}: int
+var LAB_MINERAL_CAPACITY* {.noDecl, importc.}: int
+var LAB_ENERGY_CAPACITY* {.noDecl, importc.}: int
+var LAB_BOOST_ENERGY* {.noDecl, importc.}: int
+var LAB_BOOST_MINERAL* {.noDecl, importc.}: int
+var LAB_COOLDOWN* {.noDecl, importc.}: int
+
+var GCL_POW* {.noDecl, importc.}: float
+var GCL_MULTIPLY* {.noDecl, importc.}: int
+var GCL_NOVICE* {.noDecl, importc.}: int
+
+# tbc
+
+# Helper Procs
+
+type
+  ControllerInfoObj* = object
+    processTotal: int
+    level: int
+    roads: int
+    containers: int
+    spawns: int
+    extensions: int
+    rampants: int
+    walls: int
+    towers: int
+    storage: int
+    links: int
+    extractors: int
+    labs: int
+    terminals: int
+    observers: int
+    powerSpawns: int
+
+  ControllerInfo* = ref ControllerInfoObj
+
+proc info*(controller: StructureController): ControllerInfo =
+  result = new ControllerInfo
+  result.roads = 1000000 # many
+  result.containers = 5
+  if controller.progressTotal < 200: return
+  result.level = 1
+  result.spawns = 1
+  if controller.progressTotal < 45000: return
+  result.level = 2
+  result.extensions = 5
+  result.rampants = 300000
+  result.walls = 1000000
+  if controller.progressTotal < 135000: return
+  result.level = 3
+  result.extensions = 10
+  result.rampants = 1000000
+  result.towers = 1
+  # tbc
+  return

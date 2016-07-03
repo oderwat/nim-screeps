@@ -50,6 +50,7 @@ template mem*(room: Room): RoomMemory = roomp.memory.RoomMemory
 
 screepsLoop: # this conaints the main loop which is exported to the game
   #console "tick"
+  echo CONSTRUCTION_COST["road"]
 
   # initialize room memory (once)
   for name, rm in memory.rooms:
@@ -148,6 +149,70 @@ screepsLoop: # this conaints the main loop which is exported to the game
       if creep.attack(closest) != OK:
         creep.moveTo(closest)
 
+  proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
+    var repairs = room.find(Structure) do (s: Structure) -> bool:
+      s.hits < s.hitsMax
+
+    # sort by structures with fewest health
+    repairs.sort() do (a, b: Structure) -> int:
+      a.hits - b.hits
+
+    if repairs.len > 0:
+      # we need at least one builder in this room
+      echo "having ", repairs.len, " structures to repair"
+
+      # shrink the number of repair sites to 4
+      if repairs.len > 4:
+        repairs = repairs[0..3]
+
+      for site in repairs:
+        echo site.id, " ", site.hitsMax - site.hits
+
+      if stats.repairing < 6: # never more than 6
+
+        if stats.idle > 0:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Idle:
+              m.action = Repair
+              inc stats.repairing
+              dec stats.idle
+              break;
+
+        elif stats.upgrading > 0:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Upgrade:
+              m.action = Repair
+              inc stats.repairing
+              dec stats.upgrading
+              break;
+
+        elif stats.building > 3:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Build:
+              m.action = Repair
+              inc stats.repairing
+              dec stats.building
+              break;
+
+        elif stats.charging > 4:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Charge:
+              m.action = Repair
+              inc stats.repairing
+              dec stats.charging
+              break;
+
+      for creep in creeps:
+        let m = creep.memory.CreepMemory
+        if m.action == Repair:
+          var closest = creep.pos.findClosestByPath(repairs)
+          m.targetId = closest.id
+
+
   proc roomControl(room: Room) =
     # is null for sim
     #let exits = game.map.describeExits(room.name)
@@ -156,6 +221,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
     var rm = room.memory.RoomMemory
     let war = rm.war
+
+    let cinfo = room.controller.info()
 
     var workBody: seq[BodyPart]
     var fightBody: seq[BodyPart]
@@ -250,73 +317,14 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.charging
               break;
 
-    var repairs = room.find(Structure) do (s: Structure) -> bool:
-      s.hits < s.hitsMax
+    if cinfo.level >= 2:
+      # todo: check for extensions to build and their status
 
-    # sort by structures with fewest health
-    repairs.sort() do (a, b: Structure) -> int:
-      a.hits - b.hits
-
-    if repairs.len > 0:
-      # we need at least one builder in this room
-      echo "having ", repairs.len, " structures to repair"
-
-      # shrink the number of repair sites to 4
-      if repairs.len > 4:
-        repairs = repairs[0..3]
-
-      for site in repairs:
-        echo site.id, " ", site.hitsMax - site.hits
-
-      if stats.repairing < 6: # never more than 6
-
-        if stats.idle > 0:
-          for creep in creeps:
-            let m = creep.memory.CreepMemory
-            if m.action == Idle:
-              m.action = Repair
-              inc stats.repairing
-              dec stats.idle
-              break;
-
-        elif stats.upgrading > 0:
-          for creep in creeps:
-            let m = creep.memory.CreepMemory
-            if m.action == Upgrade:
-              m.action = Repair
-              inc stats.repairing
-              dec stats.upgrading
-              break;
-
-        elif stats.building > 3:
-          for creep in creeps:
-            let m = creep.memory.CreepMemory
-            if m.action == Build:
-              m.action = Repair
-              inc stats.repairing
-              dec stats.building
-              break;
-
-        elif stats.charging > 4:
-          for creep in creeps:
-            let m = creep.memory.CreepMemory
-            if m.action == Charge:
-              m.action = Repair
-              inc stats.repairing
-              dec stats.charging
-              break;
-
-      for creep in creeps:
-        let m = creep.memory.CreepMemory
-        if m.action == Repair:
-          var closest = creep.pos.findClosestByPath(repairs)
-          m.targetId = closest.id
+      handleRepairs(room, creeps, stats)
 
     #let workers = filterCreeps() do (creep: Creep) -> bool:
     #  #echo creep.name
     #  creep.mem(CreepMemory).role == Worker
-
-    dump stats
 
     if war and stats.fighters < 6 and stats.workers >= 2:
       echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
