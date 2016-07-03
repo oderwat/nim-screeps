@@ -232,7 +232,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if room.energyCapacityAvailable < 550:
       #body = @[WORK, WORK, CARRY, MOVE]
       workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
-      fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, ATTACK, ATTACK]
+      fightBody = @[MOVE, RANGED_ATTACK]
     else:
       workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
       fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
