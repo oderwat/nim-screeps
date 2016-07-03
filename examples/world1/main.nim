@@ -148,6 +148,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       let closest = creep.pos.findClosestByPath(hostiles)
       if creep.attack(closest) != OK:
         creep.moveTo(closest)
+    else:
+      creep.moveTo(game.flags.Flag1)
 
   proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
     var repairs = room.find(Structure) do (s: Structure) -> bool:
@@ -165,8 +167,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       if repairs.len > 4:
         repairs = repairs[0..3]
 
-      for site in repairs:
-        echo site.id, " ", site.hitsMax - site.hits
+      #for site in repairs:
+      #  echo site.id, " ", site.hitsMax - site.hits
 
       if stats.repairing < 6: # never more than 6
 
@@ -220,19 +222,20 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #  echo "Exit: ", k, " > ", v
 
     var rm = room.memory.RoomMemory
-    let war = rm.war
+    #rm.war = true
+    let war = true
 
     let cinfo = room.controller.info()
 
     var workBody: seq[BodyPart]
     var fightBody: seq[BodyPart]
-    if room.energyCapacityAvailable <= 500:
+    if room.energyCapacityAvailable < 550:
       #body = @[WORK, WORK, CARRY, MOVE]
       workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
       fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, ATTACK, ATTACK]
     else:
-      workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
-      fightBody = @[ATTACK, ATTACK, TOUGH, TOUGH, MOVE, MOVE, MOVE]
+      workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
+      fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
 
     echo "Room Capacity: ", room.energyAvailable, " / ", room.energyCapacityAvailable
 
@@ -315,6 +318,17 @@ screepsLoop: # this conaints the main loop which is exported to the game
               m.targetId = closest.id
               inc stats.building
               dec stats.charging
+              break;
+
+        elif stats.building < 3 and stats.repairing > 3:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Repair:
+              m.action = Build
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
+              inc stats.building
+              dec stats.repairing
               break;
 
     if cinfo.level >= 2:
