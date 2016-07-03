@@ -121,6 +121,18 @@ screepsLoop: # this conaints the main loop which is exported to the game
         elif target.hits == target.hitsMax:
           cm.targetId = nil
           cm.action = Idle
+        else:
+
+          # changing to other near targets (? good idea or not?)
+          var repairs = creep.room.find(Structure) do (s: Structure) -> bool:
+            s.hits < s.hitsMax
+          # sort by structures with fewest health
+          repairs.sort() do (a, b: Structure) -> int:
+            a.hits - b.hits
+          if repairs.len > 4:
+            repairs = repairs[0..3]
+          var closest = creep.pos.findClosestByPath(repairs)
+          cm.targetId = closest.id
 
       elif cm.action == Upgrade:
         # just for now
@@ -180,24 +192,25 @@ screepsLoop: # this conaints the main loop which is exported to the game
         if cm.sourceId == nil:
           cm.sourceId = sources[idx mod sources.len].id
         inc stats.workers
+        inc idx
+
+        if cm.action == Charge:
+          inc stats.charging
+        elif cm.action == Build:
+          inc stats.building
+        elif cm.action == Upgrade:
+          inc stats.upgrading
+        elif cm.action == Repair:
+          inc stats.repairing
+        elif cm.action == Idle:
+          inc stats.idle
+        else:
+          inc stats.error
+        if cm.refilling:
+          inc stats.refilling
+
       elif cm.role == Fighter:
         inc stats.fighters
-
-      if cm.action == Charge:
-        inc stats.charging
-      elif cm.action == Build:
-        inc stats.building
-      elif cm.action == Upgrade:
-        inc stats.upgrading
-      elif cm.action == Repair:
-        inc stats.repairing
-      elif cm.action == Idle:
-        inc stats.idle
-      else:
-        inc stats.error
-      if cm.refilling:
-        inc stats.refilling
-      inc idx
 
     var csites = room.find(ConstructionSite)
     # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
