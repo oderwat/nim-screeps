@@ -121,18 +121,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
         elif target.hits == target.hitsMax:
           cm.targetId = nil
           cm.action = Idle
-        else:
-
-          # changing to other near targets (? good idea or not?)
-          var repairs = creep.room.find(Structure) do (s: Structure) -> bool:
-            s.hits < s.hitsMax
-          # sort by structures with fewest health
-          repairs.sort() do (a, b: Structure) -> int:
-            a.hits - b.hits
-          if repairs.len > 4:
-            repairs = repairs[0..3]
-          var closest = creep.pos.findClosestByPath(repairs)
-          cm.targetId = closest.id
 
       elif cm.action == Upgrade:
         # just for now
@@ -277,8 +265,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       if repairs.len > 4:
         repairs = repairs[0..3]
 
-      #for site in repairs:
-      #  echo site.id, " ", site.hitsMax - site.hits
+      for site in repairs:
+        echo site.id, " ", site.hitsMax - site.hits
 
       if stats.repairing < 6: # never more than 6
 
@@ -287,8 +275,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.memory.CreepMemory
             if m.action == Idle:
               m.action = Repair
-              var closest = creep.pos.findClosestByPath(repairs)
-              m.targetId = closest.id
               inc stats.repairing
               dec stats.idle
               break;
@@ -298,8 +284,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.memory.CreepMemory
             if m.action == Upgrade:
               m.action = Repair
-              var closest = creep.pos.findClosestByPath(repairs)
-              m.targetId = closest.id
               inc stats.repairing
               dec stats.upgrading
               break;
@@ -309,8 +293,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.memory.CreepMemory
             if m.action == Build:
               m.action = Repair
-              var closest = creep.pos.findClosestByPath(repairs)
-              m.targetId = closest.id
               inc stats.repairing
               dec stats.building
               break;
@@ -320,11 +302,15 @@ screepsLoop: # this conaints the main loop which is exported to the game
             let m = creep.memory.CreepMemory
             if m.action == Charge:
               m.action = Repair
-              var closest = creep.pos.findClosestByPath(repairs)
-              m.targetId = closest.id
               inc stats.repairing
               dec stats.charging
               break;
+
+      for creep in creeps:
+        let m = creep.memory.CreepMemory
+        if m.action == Repair:
+          var closest = creep.pos.findClosestByPath(repairs)
+          m.targetId = closest.id
 
     #let workers = filterCreeps() do (creep: Creep) -> bool:
     #  #echo creep.name
