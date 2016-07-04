@@ -167,8 +167,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       if repairs.len > 4:
         repairs = repairs[0..3]
 
-      #for site in repairs:
-      #  echo site.id, " ", site.hitsMax - site.hits
+      for site in repairs:
+        echo site.id, " ", site.hits, " ", site.structureType
 
       if stats.repairing < 6: # never more than 6
 
@@ -181,7 +181,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.idle
               break;
 
-        elif stats.upgrading > 0:
+        elif stats.upgrading > 2:
           for creep in creeps:
             let m = creep.memory.CreepMemory
             if m.action == Upgrade:
@@ -229,9 +229,12 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
     var workBody: seq[BodyPart]
     var fightBody: seq[BodyPart]
-    if room.energyCapacityAvailable < 550:
+    if room.energyCapacityAvailable < 450:
       #body = @[WORK, WORK, CARRY, MOVE]
       workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
+      fightBody = @[MOVE, RANGED_ATTACK]
+    elif room.energyCapacityAvailable < 550:
+      workBody = @[WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
       fightBody = @[MOVE, RANGED_ATTACK]
     else:
       workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
@@ -271,9 +274,21 @@ screepsLoop: # this conaints the main loop which is exported to the game
         inc stats.fighters
 
     var csites = room.find(ConstructionSite)
-    # Sortieren nach "geringster notwendiger Energy zur Fertigstellung"
+    # Sort by smalles energy cost for finishing construction
+    # Extensions are priorised above walls and rampants
     csites.sort() do (a, b: ConstructionSite) -> int:
-      (a.progressTotal - a.progress) - (b.progressTotal - b.progress)
+      var ea, eb: int
+      if a.structureType == STRUCTURE_TYPE_EXTENSION:
+        ea = 2
+      else:
+        ea = a.progressTotal - a.progress
+
+      if b.structureType == STRUCTURE_TYPE_EXTENSION:
+        eb = 2
+      else:
+        eb = b.progressTotal - b.progress
+
+      ea - eb
 
     if csites.len > 0:
       # we need at least one builder in this room
@@ -284,6 +299,9 @@ screepsLoop: # this conaints the main loop which is exported to the game
       # shrink the number of repair sites to 4
       if csites.len > 2:
         csites = csites[0..2]
+
+      for site in csites:
+        echo site.id, " ", site.progressTotal - site.progress, " ", site.structureType
 
       if stats.building < 6: # never more than 6
 
@@ -298,7 +316,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.idle
               break;
 
-        elif stats.upgrading > (if war: 0 else: 2):
+        elif stats.upgrading > 2:
           for creep in creeps:
             let m = creep.memory.CreepMemory
             if m.action == Upgrade:
@@ -331,16 +349,49 @@ screepsLoop: # this conaints the main loop which is exported to the game
               dec stats.repairing
               break;
 
-    if cinfo.level >= 2:
-      # todo: check for extensions to build and their status
+      if stats.charging < 3: # never less than 3
 
+        if stats.idle > 0:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Idle:
+              m.action = Charge
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
+              inc stats.charging
+              dec stats.idle
+              break;
+
+        elif stats.upgrading > 2:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Upgrade:
+              m.action = Charge
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
+              inc stats.charging
+              dec stats.upgrading
+              break;
+
+        elif stats.building > 3:
+          for creep in creeps:
+            let m = creep.memory.CreepMemory
+            if m.action == Build:
+              m.action = Charge
+              var closest = creep.pos.findClosestByPath(csites)
+              m.targetId = closest.id
+              inc stats.charging
+              dec stats.building
+              break;
+
+    if cinfo.level >= 2:
       handleRepairs(room, creeps, stats)
 
     #let workers = filterCreeps() do (creep: Creep) -> bool:
     #  #echo creep.name
     #  creep.mem(CreepMemory).role == Worker
 
-    if war and stats.fighters < 6 and stats.workers >= 2:
+    if cinfo.level >= 2 and stats.fighters < 4 and stats.workers >= 2:
       echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
       if room.energyAvailable >=  fightBody.calcEnergyCost:
         for spawn in game.spawns:
