@@ -409,6 +409,9 @@ proc getObjectById*(game: Game, id: cstring, what: typedesc): what {.importcpp: 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
 
+proc findClosestByRange*[T](pos: RoomPosition, objs: seq[T]): T =
+  {.emit: "`result` = `pos`.findClosestByRange(`objs`);\n".}
+
 proc find*(room: Room, what: typedesc): seq[what] =
   result = @[]
   when what is Source:
@@ -489,6 +492,7 @@ proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int 
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc attack*(creep: Creep, hostile: Creep): int {.importcpp.}
+proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 
 proc moveTo*(creep: Creep, pos: RoomPosition): int {.importcpp, discardable.}

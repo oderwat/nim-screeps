@@ -144,10 +144,21 @@ screepsLoop: # this conaints the main loop which is exported to the game
     #var cm = creep.mem(CreepMemory)
 
     var hostiles = creep.room.findHostile(CREEP)
+    #echo "Have ", hostiles.len, " hostiles"
     if hostiles.len > 0:
-      let closest = creep.pos.findClosestByPath(hostiles)
-      if creep.attack(closest) != OK:
-        creep.moveTo(closest)
+      var closest = creep.pos.findClosestByPath(hostiles)
+      if closest == nil:
+        #echo "hostile direct path"
+        closest = creep.pos.findClosestByRange(hostiles)
+
+      if closest == nil:
+        echo "this should not happen (155)"
+        closest = hostiles[0]
+
+      if creep.rangedAttack(closest) != OK:
+        var ret = creep.moveTo(closest)
+        echo creep.name, " moves to attack (", ret, ")"
+
     else:
       creep.moveTo(game.flags.Flag1)
 
@@ -170,7 +181,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
       for site in repairs:
         echo site.id, " ", site.hits, " ", site.structureType
 
-      if stats.repairing < 6: # never more than 6
+      if stats.repairing < 4: # never more than 4
 
         if stats.idle > 0:
           for creep in creeps:
@@ -399,7 +410,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
           var name = spawn.createCreep(fightBody, nil, rm)
           if name != "":
             echo "New Fighter ", name, " is spawned"
-    elif stats.workers < 12:
+    elif stats.workers < 14:
       echo "need workers (", workBody.calcEnergyCost, " / ", room.energyAvailable, ")"
       if room.energyAvailable >=  workBody.calcEnergyCost:
         for spawn in game.spawns:
