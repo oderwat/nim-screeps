@@ -6,6 +6,7 @@
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
 import screeps
+import screepsutils
 
 type Roles = enum
   Worker    # 0

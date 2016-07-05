@@ -16,7 +16,7 @@ proc dump*[T](x: T) = console stringify x
 template screepsLoop*(code: untyped): untyped =
   proc screepsLoop() {.exportc.} =
     code
-  {.emit: "module.exports.loop = function () { screepsLoop() }\n".}
+  {.emit: "module.exports.loop = screepsLoop\n".}
 
 type
   JSAssoc*[Key, Val] = ref object
@@ -31,9 +31,9 @@ type
   LookType* = distinct cstring
 
   GlobalControlLevelObj {.exportc.} = object
-    level: int
-    progress: int
-    progressTotal: int
+    level*: int
+    progress*: int
+    progressTotal*: int
 
   GlobalControlLevel* = ref GlobalControlLevelObj
 
@@ -41,12 +41,12 @@ type
   Map* = ref MapObj
 
   GameObj*  {.exportc.} = object
-    rooms: JSAssoc[cstring, Room]
-    spawns: JSAssoc[cstring, StructureSpawn]
-    creeps: JSAssoc[cstring, Creep]
-    flags: JSAssoc[cstring, Flag]
-    gcl: GlobalControlLevel
-    map: Map
+    rooms*: JSAssoc[cstring, Room]
+    spawns*: JSAssoc[cstring, StructureSpawn]
+    creeps*: JSAssoc[cstring, Creep]
+    flags*: JSAssoc[cstring, Flag]
+    gcl*: GlobalControlLevel
+    map*: Map
 
   Game* = ref GameObj
 
@@ -54,83 +54,83 @@ type
   MemoryEntry* = ref object of RootObj #MemoryEntryObj
 
   MemoryObj*  {.exportc.} = object
-    creeps: JSAssoc[cstring, MemoryEntry]
-    rooms:  JSAssoc[cstring, MemoryEntry]
+    creeps*: JSAssoc[cstring, MemoryEntry]
+    rooms*:  JSAssoc[cstring, MemoryEntry]
 
   Memory* = ref MemoryObj
 
   InvadersObj*  {.exportc.} = ref object
-    bodies: seq[cstring]
+    bodies*: seq[cstring]
 
   Invaders* = ref InvadersObj
 
   SurvivalInfoObj* {.exportc.} = object
-    mode: cstring
-    status: cstring
-    user: cstring
-    score: int
-    timeToWave: int
-    wave: int
-    survivalEnabled: bool
-    invaders: Invaders
+    mode*: cstring
+    status*: cstring
+    user*: cstring
+    score*: int
+    timeToWave*: int
+    wave*: int
+    survivalEnabled*: bool
+    invaders*: Invaders
 
   SurvivalInfo* = ref SurvivalInfoObj
 
   UserObj* {.exportc.} = object
-    username: cstring
+    username*: cstring
 
   User* = ref UserObj
 
   RoomObj* {.exportc.} = object
-    name: cstring
-    mode: cstring
-    memory: MemoryEntry
-    controller: StructureController
-    storage: pointer
-    terminal: pointer
-    energyAvailable: int
-    energyCapacityAvailable: int
-    survivalInfo: SurvivalInfo
+    name*: cstring
+    mode*: cstring
+    memory*: MemoryEntry
+    controller*: StructureController
+    storage*: pointer
+    terminal*: pointer
+    energyAvailable*: int
+    energyCapacityAvailable*: int
+    survivalInfo*: SurvivalInfo
 
   Room* = ref RoomObj
 
   RoomPositionObj* {.exportc.} = object
-    x: int
-    y: int
-    roomName: cstring
+    x*: int
+    y*: int
+    roomName*: cstring
 
   RoomPosition* = ref RoomPositionObj
 
   RoomObjectObj* = object of RootObj
-    room: Room
-    pos: RoomPosition
+    room*: Room
+    pos*: RoomPosition
 
   RoomObject* = ref RoomObjectObj
 
   ConstructionSiteObj* {.exportc.} = object of RoomObjectObj
-    id: cstring
-    my: bool
-    owner: User
-    progress: int
-    progressTotal: int
-    structureType: StructureType
+    id*: cstring
+    my*: bool
+    owner*: User
+    progress*: int
+    progressTotal*: int
+    structureType*: StructureType
 
   ConstructionSite* = ref ConstructionSiteObj
 
   CreepObj* {.exportc.} = object of RoomObjectObj
-    name: cstring
-    body: seq[BodyPart]
-    memory: MemoryEntry
-    carry: JSAssoc[cstring, int]
-    carryCapacity: int
+    name*: cstring
+    body*: seq[BodyPart]
+    memory*: MemoryEntry
+    carry*: JSAssoc[ResourceType, int]
+    carryCapacity*: int
 
   Creep* = ref CreepObj
 
   FlagObj* {.exportc.} =  object of RoomObjectObj
-    name: cstring
-    color: cstring
-    secondaryColor: cstring
-    memory: pointer
+    name*: cstring
+    color*: cstring
+    secondaryColor*: cstring
+    memory*: pointer
 
   Flag* = ref FlagObj
 
@@ -139,40 +139,40 @@ type
   # TODO: Resource
 
   SourceObj* {.exportc.} =  object of RoomObjectObj
-    energy: int
-    energyCapacity: int
-    id: cstring
-    ticksToRegeneration: int
+    energy*: int
+    energyCapacity*: int
+    id*: cstring
+    ticksToRegeneration*: int
 
   Source* = ref SourceObj
 
   StructureObj* {.exportc.} =  object of RoomObjectObj
-    hits: int
-    hitsMax: int
-    id: cstring
-    structureType: StructureType
+    hits*: int
+    hitsMax*: int
+    id*: cstring
+    structureType*: StructureType
 
   Structure* = ref StructureObj
 
   OwnedStructureObj* = object of StructureObj
-    my: bool
-    owner: User
+    my*: bool
+    owner*: User
 
   OwnedStructure* = ref OwnedStructureObj
 
   # we use this for stuff which carries energy
   EnergizedStructureObj* {.exportc.} = object of OwnedStructureObj
-    energy: int
-    energyCapacity: int
+    energy*: int
+    energyCapacity*: int
 
   EnergizedStructure* = ref EnergizedStructureObj
 
   StructureControllerObj* {.exportc.} = object of StructureObj
-    progress: int
-    progressTotal: int
-    reservation: pointer
-    ticksToDowngrade: int
-    upgradeBlocked: int
+    progress*: int
+    progressTotal*: int
+    reservation*: pointer
+    ticksToDowngrade*: int
+    upgradeBlocked*: int
 
   StructureController* = ref StructureControllerObj
 
@@ -190,8 +190,8 @@ type
   # TODO: StructureRampart
 
   StructureSpawnObj* = object of EnergizedStructureObj
-    name: cstring
-    spawning: pointer
+    name*: cstring
+    spawning*: pointer
 
   StructureSpawn* = ref StructureSpawnObj
 
@@ -397,9 +397,8 @@ proc carrySum*(creep: Creep): int =
 template `.`*(a: JSAssoc, f: untyped): auto =
   a[f]
 
-# well
-proc carryEnergy*(creep: Creep): int =
-  result = creep.carry["energy"]
+template energy*(carry: JSAssoc[ResourceType, int]): int =
+  carry[RESOURCE_TYPE_ENERGY]
 
 var game* {.noDecl, importc: "Game".}: Game
 var memory* {.noDecl, importc: "Memory".}: Memory
@@ -489,6 +488,7 @@ var targets = creep.room.findStructures(opts)
 
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
+proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc attack*(creep: Creep, hostile: Creep): int {.importcpp.}
@@ -557,46 +557,3 @@ var GCL_MULTIPLY* {.noDecl, importc.}: int
 var GCL_NOVICE* {.noDecl, importc.}: int
 
 # tbc
-
-# Helper Procs
-
-type
-  ControllerInfoObj* = object
-    processTotal: int
-    level: int
-    roads: int
-    containers: int
-    spawns: int
-    extensions: int
-    rampants: int
-    walls: int
-    towers: int
-    storage: int
-    links: int
-    extractors: int
-    labs: int
-    terminals: int
-    observers: int
-    powerSpawns: int
-
-  ControllerInfo* = ref ControllerInfoObj
-
-proc info*(controller: StructureController): ControllerInfo =
-  result = new ControllerInfo
-  result.roads = 1000000 # many
-  result.containers = 5
-  if controller.progressTotal < 200: return
-  result.level = 1
-  result.spawns = 1
-  if controller.progressTotal < 45000: return
-  result.level = 2
-  result.extensions = 5
-  result.rampants = 300000
-  result.walls = 1000000
-  if controller.progressTotal < 135000: return
-  result.level = 3
-  result.extensions = 10
-  result.rampants = 1000000
-  result.towers = 1
-  # tbc
-  return
