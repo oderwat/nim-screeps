@@ -52,3 +52,6 @@ proc info*(controller: StructureController): ControllerInfo =
   result.towers = 1
   # tbc
   return
+
+template at*(pos: RoomPosition): cstring = "@(" & $pos.x & "," & $pos.y & ")"
+template at*(obj: RoomObject): cstring = at obj.pos

@@ -6,17 +6,28 @@
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
-import macros
+import macros, strutils
 
 proc console*(txt: cstring) {.importc: "console.log".}
 proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
 
 proc dump*[T](x: T) = console stringify x
 
+when defined(screepsprofiler):
+  {.emit: "function screepsProfiler() {\n".}
+  {.emit: staticRead("screeps-profiler.js").
+    replace("`","``").
+    replace("module.exports =","return") & "\n" .}
+  {.emit: "}; var profiler = screepsProfiler();\n".}
+
 template screepsLoop*(code: untyped): untyped =
   proc screepsLoop() {.exportc.} =
     code
-  {.emit: "module.exports.loop = screepsLoop\n".}
+  when defined(screepsprofiler):
+    {.emit: "profiler.enable()\n".}
+    {.emit: "module.exports.loop = profiler.wrap(screepsLoop)\n".}
+  else:
+    {.emit: "module.exports.loop = screepsLoop\n".}
 
 type
   JSAssoc*[Key, Val] = ref object
@@ -30,6 +41,12 @@ type
   ModeType* = distinct cstring
   LookType* = distinct cstring
 
+  CPUObj* {.exportc.} = object
+    limit*: int
+    tickLimit*: int
+    bucket*: int
+  CPU* = ref CPUObj
+
   GlobalControlLevelObj {.exportc.} = object
     level*: int
     progress*: int
@@ -41,12 +58,17 @@ type
   Map* = ref MapObj
 
   GameObj*  {.exportc.} = object
-    rooms*: JSAssoc[cstring, Room]
-    spawns*: JSAssoc[cstring, StructureSpawn]
+    constructionSites: JSAssoc[cstring, ConstructionSite]
+    cpu*: CPU
     creeps*: JSAssoc[cstring, Creep]
     flags*: JSAssoc[cstring, Flag]
     gcl*: GlobalControlLevel
     map*: Map
+    market*: pointer
+    rooms*: JSAssoc[cstring, Room]
+    spawns*: JSAssoc[cstring, StructureSpawn]
+    structures*: JSAssoc[cstring, Structure]
+    time*: int
 
   Game* = ref GameObj
 
@@ -305,7 +327,7 @@ proc `$`*(a: StructureType): string {.borrow.}
 
 const STRUCTURE_TYPE_SPAWN* = "spawn".StructureType
 const STRUCTURE_TYPE_EXTENSION* = "extension".StructureType
-const STRUCTURE_TYPE_TOWER* = "toer".StructureType
+const STRUCTURE_TYPE_TOWER* = "tower".StructureType
 
 proc `==`*(a, b: ResourceType): bool {.borrow.}
 proc `$`*(a: ResourceType): string {.borrow.}
@@ -360,7 +382,7 @@ iterator keys*[K,V](d: JSAssoc[K,V]): K =
 proc createCreep*(spawn: StructureSpawn, body: openArray[BodyPart], name: cstring, memory: MemoryEntry): cstring =
   # I am hacking the inherit information from the object because screeps deadlocks
   # if its there and it is not needed for real (I think / TODO: I need to ask @araq about it!)
-  {.emit: "delete `memory`.m_type; `result` = `spawn`.createCreep(`body`, `name`, `memory`);".}
+  {.emit: "delete `memory`.m_type; `result` = `spawn`.createCreep(`body`, `name`, `memory`)+'';".}
 
 proc describeExits*(map: Map, roomName: cstring): JSAssoc[cstring, cstring] {.importcpp.}
 #  {.emit: "`map`.describeExits(`roomName`)\n".}
@@ -411,67 +433,60 @@ proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
 proc findClosestByRange*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(`objs`);\n".}
 
+template typeToFind*(what: typedesc): FindTargets =
+  when what is Source: FIND_SOURCES
+  elif what is ConstructionSite: FIND_CONSTRUCTION_SITES
+  elif what is Structure: FIND_STRUCTURES
+  elif what is Creep: FIND_CREEPS
+  elif what is ConstructionSite: FIND_CONSTRUCTION_SITES
+  else: {.error: "impossible find".}
+
+template typeToFindHostile*(what: typedesc): FindTargets =
+  when what is Creep: FIND_HOSTILE_CREEPS
+  elif what is Structure: FIND_HOSTILE_STRUCTURES
+  else: {.error: "impossible find".}
+
+template typeToFindMy*(what: typedesc): FindTargets =
+  when what is Creep: FIND_MY_CREEPS
+  elif what is Structure: FIND_MY_STRUCTURES
+  elif what is ConstructionSite: FIND_MY_CONSTRUCTION_SITES
+  else: {.error: "impossible find".}
+
+# just to make it even more crazy
+converter towerToPos*(obj: StructureTower): RoomPosition = obj.pos
+
+proc findClosestByRange*(pos: RoomPosition, what: typedesc): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ");\n".}
+
+proc findClosestByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ", { filter: `filter` });\n".}
+
+proc findClosestHostileByRange*(pos: RoomPosition, what: typedesc): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ");\n".}
+
 proc find*(room: Room, what: typedesc): seq[what] =
   result = @[]
-  when what is Source:
-    {.emit: "`result` = `room`.find(FIND_SOURCES);\n".}
-  elif what is Structure:
-    {.emit: "`result` = `room`.find(FIND_STRUCTURES);\n".}
-  elif what is ConstructionSite:
-    {.emit: "`result` = `room`.find(FIND_CONSTRUCTION_SITES);\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_CREEPS);\n".}
-  else: {.error: "impossible find".}
-  # wanna make some error or leave if with nothing found?
+  {.emit: "`result` = `room`.find(" & $typeToFind(what) & ");\n".}
 
 proc find*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
   result = @[]
-  when what is Source:
-    {.emit: "`result` = `room`.find(FIND_SOURCES, { filter: `filter` });\n".}
-  elif what is ConstructionSite:
-    {.emit: "`result` = `room`.find(FIND_CONSTRUCTION_SITES, { filter: `filter` });\n".}
-  elif what is Structure:
-    {.emit: "`result` = `room`.find(FIND_STRUCTURES, { filter: `filter` });\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_CREEPS, { filter: `filter` });\n".}
-  else: {.error: "impossible find".}
-  # wanna make some error or leave if with nothing found?
+  {.emit: "`result` = `room`.find(" & $typeToFind(what) & ", { filter: `filter` });\n".}
 
 proc findMy*(room: Room, what: typedesc): seq[what] =
   result = @[]
-  when what is Structure:
-    {.emit: "`result` = `room`.find(FIND_MY_STRUCTURES);\n".}
-  elif what is ConstructionSite:
-    {.emit: "`result` = `room`.find(FIND_MY_CONSTRUCTION_SITES);\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_MY_CREEPS);\n".}
-  else: {.error: "impossible findMy".}
+  {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ");\n".}
 
 proc findMy*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
   result = @[]
-  when what is Structure:
-    {.emit: "`result` = `room`.find(FIND_MY_STRUCTURES, { filter: `filter` });\n".}
-  elif what is ConstructionSite:
-    {.emit: "`result` = `room`.find(FIND_MY_CONSTRUCTION_SITES, { filter: `filter` });\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_MY_CREEPS, { filter: `filter` });\n".}
-  else: {.error: "impossible findMy".}
+  {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
 
 proc findHostile*(room: Room, what: typedesc): seq[what] =
   result = @[]
-  when what is Structure:
-    {.emit: "`result` = `room`.find(FIND_HOSTILE_STRUCTURES);\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_HOSTILE_CREEPS);\n".}
-  else: {.error: "impossible findHostile".}
+  {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ");\n".}
 
 proc findHostile*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
   result = @[]
-  when what is Structure:
-    {.emit: "`result` = `room`.find(FIND_HOSTILE_STRUCTURES, { filter: `filter` });\n".}
-  elif what is Creep:
-    {.emit: "`result` = `room`.find(FIND_HOSTILE_CREEPS, { filter: `filter` });\n".}
-  else: {.error: "impossible findHostile".}
+  {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
 #[ something like this would also work:
 
@@ -486,12 +501,15 @@ var targets = creep.room.findStructures(opts)
 
 ]#
 
+proc say*(creep: Creep, txt: cstring) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
+proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
 proc attack*(creep: Creep, hostile: Creep): int {.importcpp.}
+proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 
