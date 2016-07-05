@@ -9,9 +9,16 @@
 import screeps
 import screepsutils
 
+# thats not in github... for reasons
+#include piratetarget
+
+when not declared(piratetarget):
+  const piratetarget="".RoomName
+
 type Roles = enum
   Worker    # 0
   Fighter   # 1
+  Pirate    # 2
 
 type Actions = enum
   Idle      # 0
@@ -25,6 +32,7 @@ type Actions = enum
 type Stats = ref object
   workers: int
   fighters: int
+  pirates: int
   charging: int
   building: int
   upgrading: int
@@ -218,6 +226,31 @@ proc roleFighter(creep: Creep) =
   else:
     creep.moveTo(game.flags.Flag1)
 
+proc rolePirate(creep: Creep) =
+  #var cm = creep.mem(CreepMemory)
+
+  var hostiles = creep.room.findHostile(CREEP)
+  #echo "Have ", hostiles.len, " hostiles"
+  if hostiles.len > 0:
+    var closest = creep.pos.findClosestByPath(hostiles)
+    if closest == nil:
+      #echo "hostile direct path"
+      closest = creep.pos.findClosestByRange(hostiles)
+
+    if closest == nil:
+      echo "this should not happen (155)"
+      closest = hostiles[0]
+
+    if creep.rangedAttack(closest) != OK:
+      var ret = creep.moveTo(closest)
+      echo creep.name, " moves to attack (", ret, ")"
+
+  else:
+    if pirateTarget != "":
+      echo travel(creep, pirateTarget)
+    else:
+      creep.moveTo(game.flags.Flag1)
+
 proc roomControl(room: Room) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
@@ -263,8 +296,16 @@ proc roomControl(room: Room) =
     elif cm.role == Fighter:
       inc stats.fighters
 
+    elif cm.role == Pirate:
+      inc stats.pirates
+
   var workBody: seq[BodyPart]
   var fightBody: seq[BodyPart]
+  var pirateBody: seq[BodyPart]
+
+  # just for fun :)
+  pirateBody = @[ATTACK, ATTACK, MOVE, MOVE]
+
   # level 1 or all workers gone?
   if room.energyCapacityAvailable < 450 or stats.workers < 2:
     #body = @[WORK, WORK, CARRY, MOVE]
@@ -402,15 +443,23 @@ proc roomControl(room: Room) =
         let rm = CreepMemory(role: Fighter, refilling: true, action: Charge)
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
-        echo "New Fighter ", name, " is spawned"
+        echo "New Fighter ", name, " is spawning"
   elif stats.workers < 14:
     echo "need workers (", workBody.calcEnergyCost, " / ", room.energyAvailable, ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:
-        let rm = CreepMemory(role: Worker, refilling: true, action: Charge)
+        let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
-        echo "New Worker ", name, " is spawned"
+        echo "New Worker ", name, " is spawning"
+  elif cinfo.level >= 3 and stats.pirates < 1:
+    echo "need pirates (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+    if room.energyAvailable >=  pirateBody.calcEnergyCost:
+      for spawn in game.spawns:
+        let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
+        var name = spawn.createCreep(pirateBody, nil, rm)
+        dump name
+        echo "New Pirate ", name, " is spawning"
 
   # Handle towers if available
   var towers = room.find(StructureTower) do(a: StructureTower) -> bool:
@@ -487,7 +536,10 @@ screepsLoop: # this conaints the main loop which is exported to the game
         #creep.say actionNames[cm.action.int].cstring
       of Fighter:
         creep.roleFighter
-        #creep.say "Figther"
+        #creep.say "Fighter"
+      of Pirate:
+        creep.rolePirate
+        #creep.say "Hoho!"
       else:
         echo "unknown creep role ", creep.name
         creep.say "???"

@@ -315,6 +315,9 @@ const LOOK_TERRAIN* = "terrain".LookType
 
 const OBSTACLE_OBJECT_TYPES* = ["spawn", "creep", "wall", "source", "constructedWall", "extension", "link", "storage", "tower", "observer", "powerSpawn", "powerBank", "lab", "terminal", "nuker"]
 
+proc `==`*(a, b: RoomName): bool {.borrow.}
+proc `$`*(a: RoomName): string {.borrow.}
+
 proc `==`*(a, b: BodyPart): bool {.borrow.}
 proc `$`*(a: BodyPart): string {.borrow.}
 
