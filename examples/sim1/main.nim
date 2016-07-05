@@ -10,7 +10,7 @@ import screeps
 screepsLoop: # this conaints the main loop which is exported to the game
 
   # Spawn creatures endlessly as soon as enought energy is available
-  discard game.spawns.Spawn1.createCreep([WORK, CARRY, MOVE], nil, [])
+  discard game.spawns.Spawn1.createCreep(@[WORK, CARRY, MOVE], nil, nil)
 
   # Let them harvest energy at the first source and transfert it to the spawn
   for creep in game.creeps:

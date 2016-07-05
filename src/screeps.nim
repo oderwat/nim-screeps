@@ -1,6 +1,4 @@
-# nim check --verbosity:1 --hints:off
-# run nim build --verbosity:1 --hints:off main.nim
-# run done
+# nim check --verbosity:2 --hints:off
 #
 # Screeps Nim module
 #
@@ -40,6 +38,13 @@ type
   ResourceType* = distinct cstring
   ModeType* = distinct cstring
   LookType* = distinct cstring
+  RoomName* = distinct cstring
+
+  RouteEntryObj* = object
+    exit*: FindTargets
+    name*: cstring
+
+  RouteEntry* = ref RouteEntryObj
 
   CPUObj* {.exportc.} = object
     limit*: int
@@ -454,6 +459,8 @@ template typeToFindMy*(what: typedesc): FindTargets =
 
 # just to make it even more crazy
 converter towerToPos*(obj: StructureTower): RoomPosition = obj.pos
+converter roomName*(rname: cstring): RoomName = rname.RoomName
+converter roomName*(rname: string): RoomName = rname.RoomName
 
 proc findClosestByRange*(pos: RoomPosition, what: typedesc): what =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ");\n".}
@@ -487,6 +494,12 @@ proc findHostile*(room: Room, what: typedesc): seq[what] =
 proc findHostile*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
+
+proc find*(room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
+
+proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[RouteEntry] {.importcpp.}
+
+proc newRoomPosition*(x, y: int, room: Room): RoomPosition {.importcpp: "new RoomPosition(#,#,#)".}
 
 #[ something like this would also work:
 

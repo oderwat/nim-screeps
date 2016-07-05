@@ -1,4 +1,5 @@
-# nim build --verbosity:1 --hints:off -d:screepsprofiler
+# nim build --verbosity:1 --hints:off
+## nim build --verbosity:1 --hints:off -d:screepsprofiler
 # run done
 #
 # world1 example for Screep

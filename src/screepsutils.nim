@@ -1,3 +1,5 @@
+# nim check --verbosity:2 --hints:off
+#
 # screeputils (test imports)
 import screeps
 
@@ -55,3 +57,18 @@ proc info*(controller: StructureController): ControllerInfo =
 
 template at*(pos: RoomPosition): cstring = "@(" & $pos.x & "," & $pos.y & ")"
 template at*(obj: RoomObject): cstring = at obj.pos
+
+proc travel*(creep: Creep, destRoom: RoomName | Room): int =
+# given destRoom and creep
+  var route = game.map.findRoute(creep.room, destRoom)
+  if route.len == 0:
+    return -1
+
+  var exit_dir = route[0].exit
+  var exit_arr = creep.room.find(exit_dir)
+  if exit_arr.len == 0:
+    return -1
+  var exit_target = exit_arr[0]
+  #dump exit_target
+  creep.moveTo(exit_target)
+
