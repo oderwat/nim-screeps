@@ -64,7 +64,7 @@ cd ~/Library/Application\ Support/screeps/scripts/screep.com
 ln -s ~/nim-screeps/deploy/sim1/ som1
 ```
 
-Here the example code from "som1":
+Here the example code from "sim1":
 
 ```Nim
 # nim build --verbosity:1 --hints:off
