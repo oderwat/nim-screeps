@@ -1,3 +1,5 @@
+# Next are my Visual Studio Code - Runner Script commands.
+#
 # nim build --verbosity:1 --hints:off
 ## nim build --verbosity:1 --hints:off -d:screepsprofiler
 # run done
@@ -5,6 +7,8 @@
 # world1 example for Screep
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
+
+import system except echo # prevent me using echo instead of log
 
 import screeps
 import screepsutils
@@ -82,14 +86,14 @@ proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
 
   if repairs.len > 0:
     # we need at least one builder in this room
-    echo "having ", repairs.len, " structures to repair"
+    log "having", repairs.len, "structures to repair"
 
     # shrink the number of repair sites to 4
     if repairs.len > 4:
       repairs = repairs[0..3]
 
     for site in repairs:
-      echo site.id, " ", site.hits, " ", site.structureType
+      log site.id, site.hits, site.structureType
 
     if stats.repairing < 4: # never more than 4
 
@@ -136,7 +140,7 @@ proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
         if closest != nil:
           m.targetId = closest.id
         else:
-          echo "no closest for ", creep.name, " ?"
+          log "no closest for", creep.name, "?"
           creep.say "NoWay!"
           m.action = Idle
           m.targetId = nil
@@ -157,7 +161,7 @@ proc roleWorker(creep: Creep) =
         creep.moveTo(source)
       elif ret != OK and ret != ERR_BUSY:
         creep.say "#?%!"
-        echo creep.name, " is lost: ", ret
+        log creep.name, "is lost:", ret
     else:
       #echo creep.name, " is now full"
       creep.say "Full"
@@ -219,12 +223,12 @@ proc roleFighter(creep: Creep) =
       closest = creep.pos.findClosestByRange(hostiles)
 
     if closest == nil:
-      echo "this should not happen (155)"
+      log "this should not happen (155)"
       closest = hostiles[0]
 
     if creep.rangedAttack(closest) != OK:
       var ret = creep.moveTo(closest)
-      echo creep.name, " moves to attack (", ret, ")"
+      log creep.name, " moves to attack (", ret, ")"
 
   else:
     creep.moveTo(game.flags.Flag1)
@@ -258,10 +262,10 @@ proc rolePirate(creep: Creep) =
       #echo "attacking ", closestStruct.id
       if creep.attack(closestStruct) != OK:
         var ret = creep.moveTo(closestStruct)
-        echo creep.name, " moves to attack (", ret, ")"
+        log creep.name, "moves to attack (" & ret & ")"
   else:
     if pirateTarget != "":
-      echo creep.name, "moving to target ", travel(creep, pirateTarget)
+      log creep.name, "moving to target", travel(creep, pirateTarget)
     else:
       #echo "moving to flag"
       creep.moveTo(game.flags.Flag1)
@@ -279,7 +283,7 @@ proc roomControl(room: Room) =
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
 
-  echo "Room Capacity: ", room.energyAvailable, " / ", room.energyCapacityAvailable
+  log "Room Capacity:", room.energyAvailable, "/", room.energyCapacityAvailable
 
   var stats = new Stats
   let sources = room.find(Source)
@@ -353,7 +357,7 @@ proc roomControl(room: Room) =
 
   if csites.len > 0:
     # we need at least one builder in this room
-    echo "having ", csites.len, " construction sites"
+    log "having", csites.len, "construction sites"
     #for site in csites:
     #  echo site.id, " ", site.progressTotal - site.progress
 
@@ -362,7 +366,7 @@ proc roomControl(room: Room) =
       csites = csites[0..2]
 
     for site in csites:
-      echo site.id, " ", site.progressTotal - site.progress, " ", site.structureType
+      log site.id, site.progressTotal - site.progress, site.structureType
 
     if stats.building < 6: # never more than 6
 
@@ -451,35 +455,35 @@ proc roomControl(room: Room) =
   #  creep.mem(CreepMemory).role == Worker
 
   if clevel >= 2 and stats.fighters < 4 and stats.workers >= 2:
-    echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+    log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
         let rm = CreepMemory(role: Fighter, refilling: true, action: Charge)
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
-        echo "New Fighter ", name, " is spawning"
+        log "New Fighter", name, "is spawning"
   elif stats.workers < 14:
-    echo "need workers (", workBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+    log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:
         let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
-        echo "New Worker ", name, " is spawning"
+        log "New Worker", name, "is spawning"
   elif clevel >= 3 and stats.pirates < 1:
-    echo "need pirates (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
+    log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  pirateBody.calcEnergyCost:
       for spawn in game.spawns:
         let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
         var name = spawn.createCreep(pirateBody, nil, rm)
         dump name
-        echo "New Pirate ", name, " is spawning"
+        log "New Pirate", name, "is spawning"
 
   # Handle towers if available
   var towers = room.find(StructureTower) do(a: StructureTower) -> bool:
     a.structureType == STRUCTURE_TYPE_TOWER
 
-  echo "have ", towers.len, " towers"
+  log "have", towers.len, "towers"
   for tower in towers:
     var closestHostile = tower.findClosestHostileByRange(Creep)
     if closestHostile != nil:
@@ -518,13 +522,13 @@ proc roomControl(room: Room) =
   dump stats
 
 screepsLoop: # this conaints the main loop which is exported to the game
-  console "tick " & $game.time
+  log game.time & " ticks"
   #echo CONSTRUCTION_COST["road"]
 
   # initialize room memory (once)
   for name, rm in memory.rooms:
     if rm.isEmpty:
-      echo "init room ", name
+      log "init room", name
       var init: RoomMemory
       memory.rooms[name] = init
 
@@ -542,10 +546,10 @@ screepsLoop: # this conaints the main loop which is exported to the game
         redistribute = true
       memory.creeps.delete name
       inc deads
-      echo "Clearing non-existing creep memory: ", name
+      log "Clearing non-existing creep memory:", name
 
   if deads > 0:
-    echo "R.I.P. x ", deads
+    log "R.I.P. x", deads
   #
   # Running some tasks and the room Controller for each room we pocess
   #
@@ -579,5 +583,5 @@ screepsLoop: # this conaints the main loop which is exported to the game
         creep.rolePirate
         #creep.say "Hoho!"
       else:
-        echo "unknown creep role ", creep.name
+        log "unknown creep role", creep.name
         creep.say "???"

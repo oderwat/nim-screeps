@@ -4,12 +4,29 @@
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
+#import system except log
+
 import macros, strutils
 
-proc console*(txt: cstring) {.importc: "console.log".}
-proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
+# About "console.log" logging from Nim code:
+#
+# You should use log() and keep in mind that it adds spaces between parameter in the output
 
-proc dump*[T](x: T) = console stringify x
+when not declared(log): # this is kind of an dummy as js backend defines that already
+  proc log*(txts: varargs[cstring, `$$`])  {.importc: "console.log".}
+
+converter stringToCString*(txt: string): cstring = txt.cstring
+proc `&`*(a, b: cstring): cstring {.importcpp: "#+#"}
+proc `&`*(a: cstring, b: int): cstring {.importcpp: "(#)+(#)"}
+proc `&`*(a: int, b: cstring): cstring {.importcpp: "(#)+(#)"}
+proc `&`*(a: cstring, b: float): cstring {.importcpp: "(#)+(#)"}
+proc `&`*(a: float, b: cstring): cstring {.importcpp: "(#)+(#)"}
+proc `$$`*(txt: cstring): cstring {.importcpp: "#" .}
+proc `$$`*(txt: string): cstring = txt.cstring
+proc `$$`*(num: int | float): cstring {.importcpp: "(''+(#))" .}
+proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
+proc dump*(args: varargs[cstring, stringify]) =
+  for x in args: log x
 
 when defined(screepsprofiler):
   {.emit: "function screepsProfiler() {\n".}
@@ -229,10 +246,18 @@ type
   StructureTowerObj* = object of EnergizedStructureObj
   StructureTower* = ref StructureTowerObj
 
-  # TODO: StructureContainer
+  StructureContainerObj* = object of StructureObj
+    store: JSAssoc[ResourceType, int] # has always: RESOURCE_TYPE_ENERGY
+
+
+  StructureContainer* = ref StructureContainerObj
+
   # TODO: StructurePortal
   # TODO: StructureRoad
-  # TODO: StructureWall
+
+  StructureWallObj* = object of StructureObj
+    ticksToLive: int # only when room protection is active
+  StructureWall* = ref StructureWallObj
 
   FindTargets* = enum
     FIND_EXIT_TOP = 1
@@ -280,6 +305,12 @@ type
     COLOR_GREY = 9
     COLOR_WHITE = 10
 
+converter roomName*(a: RoomName): cstring {.importcpp: "#".}
+converter bodyPart*(a: BodyPart): cstring {.importcpp: "#".}
+converter structureType*(a: StructureType): cstring {.importcpp: "#".}
+converter modeType*(a: ModeType): cstring {.importcpp: "#".}
+converter resourceType*(a: ResourceType): cstring {.importcpp: "#".}
+
 template FIND_DROPPED_RESOURCES* = FIND_DROPPED_ENERGY
 
 const OK* = 0
@@ -316,12 +347,6 @@ const LOOK_TERRAIN* = "terrain".LookType
 
 const OBSTACLE_OBJECT_TYPES* = ["spawn", "creep", "wall", "source", "constructedWall", "extension", "link", "storage", "tower", "observer", "powerSpawn", "powerBank", "lab", "terminal", "nuker"]
 
-proc `==`*(a, b: RoomName): bool {.borrow.}
-proc `$`*(a: RoomName): string {.borrow.}
-
-proc `==`*(a, b: BodyPart): bool {.borrow.}
-proc `$`*(a: BodyPart): string {.borrow.}
-
 const MOVE* = "move".BodyPart # 50
 const WORK* = "work".BodyPart # 100
 const CARRY* = "carry".BodyPart # 50
@@ -331,9 +356,6 @@ const HEAL* = "heal".BodyPart # 250
 const CLAIM* = "claim".BodyPart # 600
 const TOUGH* = "tough".BodyPart # 10
 
-proc `==`*(a, b: StructureType): bool {.borrow.}
-proc `$`*(a: StructureType): string {.borrow.}
-
 const STRUCTURE_TYPE_SPAWN* = "spawn".StructureType
 const STRUCTURE_TYPE_EXTENSION* = "extension".StructureType
 const STRUCTURE_TYPE_TOWER* = "tower".StructureType
@@ -342,20 +364,12 @@ const STRUCTURE_TYPE_ROAD* = "road".StructureType
 const STRUCTURE_TYPE_RAMPART* = "rampart".StructureType
 const STRUCTURE_TYPE_CONTROLLER* = "controller".StructureType
 
-proc `==`*(a, b: ResourceType): bool {.borrow.}
-proc `$`*(a: ResourceType): string {.borrow.}
-
 const RESOURCE_TYPE_ENERGY* = "energy".ResourceType
-
-proc `==`*(a, b: ModeType): bool {.borrow.}
-proc `$`*(a: ModeType): string {.borrow.}
 
 const MODE_SIMULATION* = "simulation".ModeType
 const MODE_SURVIVAL* = "survival".ModeType
 const MODE_WORLD* = "world".ModeType
 const MODE_ARENA* = "arena".ModeType
-
-converter bodyPart(b: BodyPart): string = $(b.cstring)
 
 proc isUndefined*[T](x: T): bool {.importcpp: "((#)==undefined)".}
 proc isEmpty*[T](x: T): bool {.importcpp: "((#)=={})".}
@@ -467,8 +481,8 @@ template typeToFindMy*(what: typedesc): FindTargets =
 
 # just to make it even more crazy
 converter towerToPos*(obj: StructureTower): RoomPosition = obj.pos
-converter roomName*(rname: cstring): RoomName = rname.RoomName
-converter roomName*(rname: string): RoomName = rname.RoomName
+converter roomName*(rname: cstring | string): RoomName = rname.RoomName
+#converter roomName*(rname: string): RoomName = rname.RoomName
 
 proc findClosestByRange*(pos: RoomPosition, what: typedesc): what =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ");\n".}
