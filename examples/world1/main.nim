@@ -137,6 +137,7 @@ proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
           m.targetId = closest.id
         else:
           echo "no closest for ", creep.name, " ?"
+          creep.say "NoWay!"
           m.action = Idle
           m.targetId = nil
 
@@ -155,6 +156,7 @@ proc roleWorker(creep: Creep) =
       if ret == ERR_NOT_IN_RANGE:
         creep.moveTo(source)
       elif ret != OK and ret != ERR_BUSY:
+        creep.say "#?%!"
         echo creep.name, " is lost: ", ret
     else:
       #echo creep.name, " is now full"
@@ -193,12 +195,8 @@ proc roleWorker(creep: Creep) =
         cm.action = Idle
 
     elif cm.action == Upgrade:
-      # just for now
-      if needEnergy.len > 0:
-        cm.action = Charge
-      else:
-        if creep.upgradeController(creep.room.controller) != OK:
-          creep.moveTo(creep.room.controller)
+      if creep.upgradeController(creep.room.controller) != OK:
+        creep.moveTo(creep.room.controller)
 
     if cm.action == Idle:
       if needEnergy.len > 0:
@@ -234,26 +232,38 @@ proc roleFighter(creep: Creep) =
 proc rolePirate(creep: Creep) =
   #var cm = creep.mem(CreepMemory)
 
-  var hostiles = creep.room.findHostile(CREEP)
-  #echo "Have ", hostiles.len, " hostiles"
-  if hostiles.len > 0:
-    var closest = creep.pos.findClosestByPath(hostiles)
-    if closest == nil:
-      #echo "hostile direct path"
-      closest = creep.pos.findClosestByRange(hostiles)
+  var hostileCreeps = creep.room.findHostile(Creep)
+  var hostileStructs: seq[Structure]
+  var closestStruct: Structure
+  var closestCreep: Creep
+  #echo creep.name, " in ", creep.room.name
+  #echo "Have ", hostileCreeps.len, " hostile Creeps"
+  if hostileCreeps.len > 0:
+    closestCreep = creep.pos.findClosestByPath(hostileCreeps)
+    if closestCreep != nil:
+      if creep.attack(closestCreep) != OK:
+        var ret = creep.moveTo(closestCreep)
+        #echo creep.name, " moves to attack (", ret, ")"
+      return
 
-    if closest == nil:
-      echo "this should not happen (155)"
-      closest = hostiles[0]
-
-    if creep.rangedAttack(closest) != OK:
-      var ret = creep.moveTo(closest)
-      echo creep.name, " moves to attack (", ret, ")"
-
+  if creep.room.name == pirateTarget:
+    hostileStructs = creep.room.find(Structure) do (struct: Structure) -> bool:
+      struct.structureType != STRUCTURE_TYPE_ROAD and struct.structureType != STRUCTURE_TYPE_CONTROLLER
+    #echo "Have ", hostileStructs.len, " hostile Structs"
+    closestStruct =  creep.pos.findClosestByPath(hostileStructs)
+    if closestStruct == nil:
+      #echo "nothing to attack, going home"
+      creep.moveTo(game.flags.Flag1)
+    else:
+      #echo "attacking ", closestStruct.id
+      if creep.attack(closestStruct) != OK:
+        var ret = creep.moveTo(closestStruct)
+        echo creep.name, " moves to attack (", ret, ")"
   else:
     if pirateTarget != "":
-      echo travel(creep, pirateTarget)
+      echo creep.name, "moving to target ", travel(creep, pirateTarget)
     else:
+      #echo "moving to flag"
       creep.moveTo(game.flags.Flag1)
 
 proc roomControl(room: Room) =
@@ -399,40 +409,38 @@ proc roomControl(room: Room) =
             dec stats.repairing
             break;
 
-    if stats.charging < 3: # never less than 3
+  # we always charge with 3 creeps
+  if stats.charging < 3: # never less than 3
 
-      if stats.idle > 0:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Idle:
-            m.action = Charge
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.charging
-            dec stats.idle
-            break;
+    if stats.idle > 0:
+      for creep in creeps:
+        let m = creep.memory.CreepMemory
+        if m.action == Idle:
+          m.action = Charge
+          m.targetId = nil
+          inc stats.charging
+          dec stats.idle
+          break;
 
-      elif stats.upgrading > 2:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Upgrade:
-            m.action = Charge
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.charging
-            dec stats.upgrading
-            break;
+    elif stats.upgrading > 2:
+      for creep in creeps:
+        let m = creep.memory.CreepMemory
+        if m.action == Upgrade:
+          m.action = Charge
+          m.targetId = nil
+          inc stats.charging
+          dec stats.upgrading
+          break;
 
-      elif stats.building > 3:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Build:
-            m.action = Charge
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.charging
-            dec stats.building
-            break;
+    elif stats.building > 3:
+      for creep in creeps:
+        let m = creep.memory.CreepMemory
+        if m.action == Build:
+          m.action = Charge
+          m.targetId = nil
+          inc stats.charging
+          dec stats.building
+          break;
 
   if cinfo.level >= 2:
     handleRepairs(room, creeps, stats)
@@ -494,7 +502,7 @@ proc roomControl(room: Room) =
           return structure.hits < 20000
 
         if structure.structureType == STRUCTURE_TYPE_RAMPART:
-          return structure.hits < 30000
+          return structure.hits < 50000
 
         if structure.structureType == STRUCTURE_TYPE_ROAD:
           return structure.hits < structure.hitsMax div 2

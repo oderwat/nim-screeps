@@ -528,7 +528,7 @@ proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.im
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
-proc attack*(creep: Creep, hostile: Creep): int {.importcpp.}
+proc attack*(creep: Creep, hostile: Creep | Structure): int {.importcpp.}
 proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
