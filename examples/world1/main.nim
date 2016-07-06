@@ -133,7 +133,12 @@ proc handleRepairs(room: Room, creeps: seq[Creep], stats: var Stats) =
       let m = creep.memory.CreepMemory
       if m.action == Repair:
         var closest = creep.pos.findClosestByPath(repairs)
-        m.targetId = closest.id
+        if closest != nil:
+          m.targetId = closest.id
+        else:
+          echo "no closest for ", creep.name, " ?"
+          m.action = Idle
+          m.targetId = nil
 
 proc roleWorker(creep: Creep) =
   var cm = creep.memory.CreepMemory # convert
@@ -470,9 +475,33 @@ proc roomControl(room: Room) =
     var closestHostile = tower.findClosestHostileByRange(Creep)
     if closestHostile != nil:
       tower.attack(closestHostile)
-    else:
+    elif tower.energy > tower.energyCapacity div 2:
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
-        structure.hits < structure.hitsMax
+        # Tower repairs if hits are below 20 percent
+        if structure.structureType == STRUCTURE_TYPE_TOWER:
+          return false
+
+        if structure.structureType == STRUCTURE_TYPE_CONTROLLER:
+          return structure.hits < structure.hitsMax
+
+        if structure.structureType == STRUCTURE_TYPE_SPAWN:
+          return structure.hits < structure.hitsMax
+
+        if structure.structureType == STRUCTURE_TYPE_EXTENSION:
+          return structure.hits < structure.hitsMax
+
+        if structure.structureType == STRUCTURE_TYPE_WALL:
+          return structure.hits < 20000
+
+        if structure.structureType == STRUCTURE_TYPE_RAMPART:
+          return structure.hits < 30000
+
+        if structure.structureType == STRUCTURE_TYPE_ROAD:
+          return structure.hits < structure.hitsMax div 2
+
+        dump structure.structureType
+        structure.hits < structure.hitsMax div 5
+
       if closestDamagedStructure != nil:
         tower.repair(closestDamagedStructure)
 

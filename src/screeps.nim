@@ -336,6 +336,10 @@ proc `$`*(a: StructureType): string {.borrow.}
 const STRUCTURE_TYPE_SPAWN* = "spawn".StructureType
 const STRUCTURE_TYPE_EXTENSION* = "extension".StructureType
 const STRUCTURE_TYPE_TOWER* = "tower".StructureType
+const STRUCTURE_TYPE_WALL* = "constructedWall".StructureType
+const STRUCTURE_TYPE_ROAD* = "road".StructureType
+const STRUCTURE_TYPE_RAMPART* = "rampart".StructureType
+const STRUCTURE_TYPE_CONTROLLER* = "controller".StructureType
 
 proc `==`*(a, b: ResourceType): bool {.borrow.}
 proc `$`*(a: ResourceType): string {.borrow.}
