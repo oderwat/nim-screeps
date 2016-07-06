@@ -276,7 +276,8 @@ proc roomControl(room: Room) =
   #rm.war = true
   let war = true
 
-  let cinfo = room.controller.info()
+  #let cinfo = room.controller.info()
+  template clevel: int = room.controller.level
 
   echo "Room Capacity: ", room.energyAvailable, " / ", room.energyCapacityAvailable
 
@@ -442,14 +443,14 @@ proc roomControl(room: Room) =
           dec stats.building
           break;
 
-  if cinfo.level >= 2:
+  if clevel >= 2:
     handleRepairs(room, creeps, stats)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
-  if cinfo.level >= 2 and stats.fighters < 4 and stats.workers >= 2:
+  if clevel >= 2 and stats.fighters < 4 and stats.workers >= 2:
     echo "need fighters (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -465,7 +466,7 @@ proc roomControl(room: Room) =
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
         echo "New Worker ", name, " is spawning"
-  elif cinfo.level >= 3 and stats.pirates < 1:
+  elif clevel >= 3 and stats.pirates < 1:
     echo "need pirates (", fightBody.calcEnergyCost, " / ", room.energyAvailable, ")"
     if room.energyAvailable >=  pirateBody.calcEnergyCost:
       for spawn in game.spawns:

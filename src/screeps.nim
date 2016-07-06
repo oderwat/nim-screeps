@@ -195,6 +195,7 @@ type
   EnergizedStructure* = ref EnergizedStructureObj
 
   StructureControllerObj* {.exportc.} = object of StructureObj
+    level*: int
     progress*: int
     progressTotal*: int
     reservation*: pointer
@@ -506,7 +507,7 @@ proc find*(room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
 
 proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[RouteEntry] {.importcpp.}
 
-proc newRoomPosition*(x, y: int, room: Room): RoomPosition {.importcpp: "new RoomPosition(#,#,#)".}
+proc newRoomPosition*(x, y: int, name: RoomName): RoomPosition {.importcpp: "new RoomPosition(#,#,#)".}
 
 #[ something like this would also work:
 

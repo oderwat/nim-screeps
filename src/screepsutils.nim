@@ -17,7 +17,6 @@ proc transferAllCurrentCarry*(src, dst: Creep): int =
 type
   ControllerInfoObj* = object
     processTotal*: int
-    level*: int
     roads*: int
     containers*: int
     spawns*: int
@@ -40,15 +39,12 @@ proc info*(controller: StructureController): ControllerInfo =
   result.roads = 1000000 # many
   result.containers = 5
   if controller.progressTotal < 200: return
-  result.level = 1
   result.spawns = 1
   if controller.progressTotal < 45000: return
-  result.level = 2
   result.extensions = 5
   result.rampants = 300000
   result.walls = 1000000
   if controller.progressTotal < 135000: return
-  result.level = 3
   result.extensions = 10
   result.rampants = 1000000
   result.towers = 1
@@ -58,8 +54,8 @@ proc info*(controller: StructureController): ControllerInfo =
 template at*(pos: RoomPosition): cstring = "@(" & $pos.x & "," & $pos.y & ")"
 template at*(obj: RoomObject): cstring = at obj.pos
 
-proc travel*(creep: Creep, destRoom: RoomName | Room): int =
-# given destRoom and creep
+proc travel_old*(creep: Creep, destRoom: RoomName | Room): int =
+  # given destRoom and creep
   var route = game.map.findRoute(creep.room, destRoom)
   if route.len == 0:
     return -1
@@ -72,3 +68,11 @@ proc travel*(creep: Creep, destRoom: RoomName | Room): int =
   #dump exit_target
   creep.moveTo(exit_target)
 
+proc travel*(creep: Creep, destRoom: RoomName | Room): int =
+  # given destRoom and creep
+  when destRoom is Room:
+    let roomName = destRoom.name
+  else:
+    let roomName = destRoom
+  var rp = newRoomPosition(25, 25, roomName)
+  creep.moveTo(rp)
