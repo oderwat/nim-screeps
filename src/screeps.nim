@@ -30,7 +30,7 @@ proc dump*(args: varargs[cstring, stringify]) =
 
 when defined(screepsprofiler):
   {.emit: "function screepsProfiler() {\n".}
-  {.emit: staticRead("screeps-profiler.js").
+  {.emit: staticRead("screeps_profiler.js").
     replace("`","``").
     replace("module.exports =","return") & "\n" .}
   {.emit: "}; var profiler = screepsProfiler();\n".}
