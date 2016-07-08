@@ -7,7 +7,7 @@
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
-import system except echo # prevent me using echo instead of log
+import system except echo, log
 
 # screeps module
 import screeps

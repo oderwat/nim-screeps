@@ -4,7 +4,7 @@
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
-#import system except log
+import system except log
 
 import macros, strutils
 
@@ -12,8 +12,12 @@ import macros, strutils
 #
 # You should use log() and keep in mind that it adds spaces between parameter in the output
 
-when not declared(log): # this is kind of an dummy as js backend defines that already
-  proc log*(txts: varargs[cstring, `$$`])  {.importc: "console.log".}
+proc consoleLog(s: cstring) {.importc: "console.log", varargs, nodecl.}
+
+proc log*(s: cstring) {.importc: "console.log", varargs, nodecl.}
+
+#when not declared(log): # this is kind of an dummy as js backend defines that already
+#  proc log*(txts: varargs[cstring, `$$`])  {.importc: "console.log".}
 
 converter stringToCString*(txt: string): cstring = txt.cstring
 proc `&`*(a, b: cstring): cstring {.importcpp: "#+#"}
@@ -26,7 +30,25 @@ proc `$$`*(txt: string): cstring = txt.cstring
 proc `$$`*(num: int | float): cstring {.importcpp: "(''+(#))" .}
 proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
 proc dump*(args: varargs[cstring, stringify]) =
-  for x in args: log x
+  for x in args: consoleLog x
+
+template fence(v,min,max: auto): auto = (if v > 5: 5 elif v < 0: 0 else: v)
+
+when defined(logextension) or defined(nimcheck):
+  proc log*(message: cstring, serverity: int = 3) =
+    const colors = [
+      "#666666".cstring,
+      "#737373",
+      "#999999",
+      "#809fff",
+      "#e65c00",
+      "#ff0066" ]
+    let serverity = fence(serverity, 0, 5)
+    consoleLog "<font color='" & colors[serverity] & "' serverity='" & serverity & "'>" & message & "</font>"
+
+  proc logH*(message: cstring) =
+    const highlight = "#ffff00".cstring
+    consoleLog "<font color='" & highlight & "'>" & message & "</font>"
 
 when defined(screepsprofiler):
   {.emit: "function screepsProfiler() {\n".}
@@ -380,6 +402,7 @@ proc hasKey*[K,V](d: JSAssoc[K,V]; k: K): bool {.importcpp: "((#).hasOwnProperty
 
 proc delete*[K,V](d: JSAssoc[K,V]; k: K) {.importcpp: "delete #[#]".}
 
+{.push warning[Uninit]:off.}
 iterator pairs*[K,V](d: JSAssoc[K,V]): (K,V) =
   var k: K
   var v: V
@@ -403,6 +426,7 @@ iterator keys*[K,V](d: JSAssoc[K,V]): K =
   {.emit: "  if (!`d`.hasOwnProperty(`k`)) continue;".}
   yield k
   {.emit: "}".}
+{.pop.}
 
 # screeps specials
 
@@ -415,6 +439,7 @@ proc describeExits*(map: Map, roomName: cstring): JSAssoc[cstring, cstring] {.im
 #  {.emit: "`map`.describeExits(`roomName`)\n".}
 
 proc calcEnergyCost*(body: openArray[BodyPart]): int =
+  result = 0
   for b in body:
     if b == MOVE:
       result += 50
@@ -438,6 +463,7 @@ proc calcEnergyCost*(body: openArray[BodyPart]): int =
 #  result = cast[JSAssoc[cstring, ty]](memory.creeps)
 
 proc carrySum*(creep: Creep): int =
+  result = 0
   for kind, value in creep.carry:
     #console stringify kind
     result += value

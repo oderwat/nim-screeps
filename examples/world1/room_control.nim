@@ -6,6 +6,7 @@ import types
 import utils_stats
 
 import handle_repairs
+import handle_tower
 
 proc roomControl*(room: Room) =
   # is null for sim
@@ -51,9 +52,12 @@ proc roomControl*(room: Room) =
   elif room.energyCapacityAvailable < 550:
     workBody = @[WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
-  else:
+  elif room.energyCapacityAvailable < 800:
     workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
+  else:
+    workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]
+    fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE]
 
   var csites = room.find(ConstructionSite)
   # Sort by smalles energy cost for finishing construction
@@ -187,7 +191,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
         log "New Worker", name, "is spawning"
-  elif clevel >= 3 and stats.pirates < 6:
+  elif clevel >= 3 and stats.pirates < 4:
     log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  pirateBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -202,38 +206,7 @@ proc roomControl*(room: Room) =
 
   log "have", towers.len, "towers"
   for tower in towers:
-    var closestHostile = tower.findClosestHostileByRange(Creep)
-    if closestHostile != nil:
-      tower.attack(closestHostile)
-    elif tower.energy > tower.energyCapacity div 2:
-      var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
-        # Tower repairs if hits are below 20 percent
-        if structure.structureType == STRUCTURE_TYPE_TOWER:
-          return false
-
-        if structure.structureType == STRUCTURE_TYPE_CONTROLLER:
-          return structure.hits < structure.hitsMax
-
-        if structure.structureType == STRUCTURE_TYPE_SPAWN:
-          return structure.hits < structure.hitsMax
-
-        if structure.structureType == STRUCTURE_TYPE_EXTENSION:
-          return structure.hits < structure.hitsMax
-
-        if structure.structureType == STRUCTURE_TYPE_WALL:
-          return structure.hits < 20000
-
-        if structure.structureType == STRUCTURE_TYPE_RAMPART:
-          return structure.hits < 50000
-
-        if structure.structureType == STRUCTURE_TYPE_ROAD:
-          return structure.hits < structure.hitsMax div 2
-
-        dump structure.structureType
-        structure.hits < structure.hitsMax div 5
-
-      if closestDamagedStructure != nil:
-        tower.repair(closestDamagedStructure)
+    handleTower(tower)
 
   # show what we have right now
   dump stats
