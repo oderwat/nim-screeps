@@ -1,5 +1,5 @@
 # nop
-# run nim build --verbosity:1 --hint[processing]:off --hint[conf]:off main.nim
+# run nim build --hint[conf]:off main.nim
 
 import system except echo, log
 
@@ -60,7 +60,7 @@ proc roomControl*(room: Room) =
   var pirateBody: seq[BodyPart]
 
   # just for fun :)
-  pirateBody = @[ATTACK, MOVE, ATTACK, MOVE]
+  pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
 
   # level 1 or all workers gone?
   if room.energyCapacityAvailable < 450 or stats.workers.len < 2:
@@ -125,7 +125,7 @@ proc roomControl*(room: Room) =
   # we always charge with 3 creeps
   var needEnergy = energyNeeded(room)
 
-  if needEnergy.len > 0 and stats.charging.len < 4: # never less than 3
+  if needEnergy.len > 0 and stats.charging.len < 6: # never less than 4
 
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
@@ -136,12 +136,12 @@ proc roomControl*(room: Room) =
     elif stats.building.len > 3:
       changeActionToClosest(stats, Build, Charge, needEnergy)
 
+  if clevel >= 2:
+    handleRepairs(room, creeps, stats)
+
   # if we have idle creeps let them upgrade
   if stats.idle.len > 0:
     changeAction(stats, Idle, Upgrade)
-
-  if clevel >= 2:
-    handleRepairs(room, creeps, stats)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name
@@ -151,11 +151,11 @@ proc roomControl*(room: Room) =
     log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
-        let rm = CreepMemory(role: Fighter, refilling: true, action: Charge)
+        let rm = CreepMemory(role: Fighter, refilling: true, action: Idle)
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
         log "New Fighter", name, "is spawning"
-  elif stats.workers.len < 10:
+  elif stats.workers.len < 8:
     log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:

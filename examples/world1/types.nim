@@ -1,5 +1,5 @@
 # nop
-# run nim build --verbosity:1 --hint[processing]:off --hint[conf]:off main.nim
+# run nim build --hint[conf]:off main.nim
 
 import system except echo, log
 

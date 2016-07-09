@@ -1,5 +1,3 @@
-# nop
-#
 # Some stuff to extend how to deal with javascript from nim
 
 type
@@ -58,3 +56,11 @@ proc `&`*(a: float, b: cstring): cstring {.importcpp: "(#)+(#)"}
 proc `$$`*(txt: cstring): cstring {.importcpp: "#" .}
 proc `$$`*(txt: string): cstring = txt.cstring
 proc `$$`*(num: int | float): cstring {.importcpp: "(''+(#))" .}
+
+when isMainModule:
+  {.emit: "var jsTest = { 'foo': 1, 'bar': 2 };".}
+
+  var jsTest {.importcpp, nodecl.}: JSAssoc[cstring, int]
+
+  for a,b in jsTest:
+    echo a, " ", b

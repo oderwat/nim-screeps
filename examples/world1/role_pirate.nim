@@ -1,5 +1,5 @@
 # nop
-# run nim build --verbosity:1 --hint[processing]:off --hint[conf]:off main.nim
+# run nim build --hint[conf]:off main.nim
 
 import system except echo, log
 
@@ -13,8 +13,8 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
   var hostileStructs: seq[Structure]
   var closestStruct: Structure
   var closestCreep: Creep
-  #echo creep.name, " in ", creep.room.name
-  #echo "Have ", hostileCreeps.len, " hostile Creeps"
+  #log creep.name, " in ", creep.room.name
+  #log "Have ", hostileCreeps.len, " hostile Creeps"
   if hostileCreeps.len > 0:
     closestCreep = creep.pos.findClosestByPath(hostileCreeps)
     if closestCreep != nil:
@@ -49,7 +49,9 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
         log creep.name, "moves to attack (" & ret & ")"
   else:
     if pirateTarget != "":
-      log creep.name, "moving to target", travel(creep, pirateTarget)
+      #log "pirateTarget is ", pirateTarget
+      var rt = travel(creep, pirateTarget)
+      #log creep.name, "moving to target", rt
     else:
-      #echo "moving to flag"
+      #log "moving to flag"
       creep.moveTo(game.flags.Flag1)

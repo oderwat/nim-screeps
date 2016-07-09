@@ -1,7 +1,7 @@
 # Next are my Visual Studio Code - Runner Script commands.
 #
-# nim build --verbosity:1  --hint[processing]:off --hint[conf]:off
-## nim build --verbosity:1 --hint[processing]:off --hint[conf]:off --d:screepsprofiler
+# nim build --hint[conf]:off
+## nim build --hint[conf]:off --d:screepsprofiler
 #
 # world1 example for Screep
 #
@@ -67,6 +67,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
   # Running some tasks and the room Controller for each room we pocess
   #
   for room in game.rooms:
+    if room.controller.my == false: continue
     # if we have deads
     if redistribute:
       # redistribute sources

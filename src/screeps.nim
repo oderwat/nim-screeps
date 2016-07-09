@@ -231,7 +231,7 @@ type
 
   EnergizedStructure* = ref EnergizedStructureObj
 
-  StructureControllerObj* {.exportc.} = object of StructureObj
+  StructureControllerObj* {.exportc.} = object of OwnedStructureObj
     level*: int
     progress*: int
     progressTotal*: int

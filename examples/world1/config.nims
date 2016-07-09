@@ -1,5 +1,12 @@
 --d:logext # we use extened logging
 
+hint("processing", off)
+hint("successx", on)
+
+#hint("conf", off)
+#hint("path", off)
+
+
 task build, "build":
   setCommand("js")
   --d:nodejs
