@@ -4,51 +4,53 @@
 #
 # (c) 2016 by Hans Raaf of METATEXX GmbH
 
-import system except log
+import system except echo, log
 
 import macros, strutils
 
-# About "console.log" logging from Nim code:
-#
-# You should use log() and keep in mind that it adds spaces between parameter in the output
-
-proc consoleLog(s: cstring) {.importc: "console.log", varargs, nodecl.}
-
-proc log*(s: cstring) {.importc: "console.log", varargs, nodecl.}
+import jsext
+export jsext
 
 #when not declared(log): # this is kind of an dummy as js backend defines that already
 #  proc log*(txts: varargs[cstring, `$$`])  {.importc: "console.log".}
 
-converter stringToCString*(txt: string): cstring = txt.cstring
-proc `&`*(a, b: cstring): cstring {.importcpp: "#+#"}
-proc `&`*(a: cstring, b: int): cstring {.importcpp: "(#)+(#)"}
-proc `&`*(a: int, b: cstring): cstring {.importcpp: "(#)+(#)"}
-proc `&`*(a: cstring, b: float): cstring {.importcpp: "(#)+(#)"}
-proc `&`*(a: float, b: cstring): cstring {.importcpp: "(#)+(#)"}
-proc `$$`*(txt: cstring): cstring {.importcpp: "#" .}
-proc `$$`*(txt: string): cstring = txt.cstring
-proc `$$`*(num: int | float): cstring {.importcpp: "(''+(#))" .}
-proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
-proc dump*(args: varargs[cstring, stringify]) =
-  for x in args: consoleLog x
+when defined(logext):
+  type LogSeverity* = enum
+    reserved, # just keep that reserved
+    debug,
+    info,
+    normal,
+    error,
+    syntax # don't use yourself. It is used with engine errors
 
-template fence(v,min,max: auto): auto = (if v > 5: 5 elif v < 0: 0 else: v)
+  converter logSeverity(x: LogSeverity): cstring {.importcpp: "#".}
+  const colors: array[LogSeverity, cstring] = [
+    "".cstring,
+    "lightgreen",
+    "cyan",
+    "white",
+    "red",
+    "orange" ]
 
-when defined(logextension) or defined(nimcheck):
-  proc log*(message: cstring, serverity: int = 3) =
-    const colors = [
-      "#666666".cstring,
-      "#737373",
-      "#999999",
-      "#809fff",
-      "#e65c00",
-      "#ff0066" ]
-    let serverity = fence(serverity, 0, 5)
-    consoleLog "<font color='" & colors[serverity] & "' serverity='" & serverity & "'>" & message & "</font>"
+  proc log*(s: cstring) {.importcpp: "console.log(\"<font color=\\\"" & $colors[normal] &
+    "\\\" severity=\\\"3\\\">\" + @ + \"</font>\")", varargs.}
+
+  proc logS*(message: cstring, severity: LogSeverity = normal) =
+    consoleLog "<font color='" & colors[severity] & "' " & """severity="""" &
+      severity & """"""" & ">" & message & "</font>"
 
   proc logH*(message: cstring) =
     const highlight = "#ffff00".cstring
-    consoleLog "<font color='" & highlight & "'>" & message & "</font>"
+    consoleLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
+
+  proc dump*(args: varargs[cstring, stringify]) =
+    for x in args: logS x, debug
+
+else:
+  proc log*(s: cstring) {.importc: "console.log", varargs.}
+
+  proc dump*(args: varargs[cstring, stringify]) =
+    for x in args: log x
 
 when defined(screepsprofiler):
   {.emit: "function screepsProfiler() {\n".}
@@ -67,10 +69,6 @@ template screepsLoop*(code: untyped): untyped =
     {.emit: "module.exports.loop = screepsLoop\n".}
 
 type
-  JSAssoc*[Key, Val] = ref object
-
-  JsObj* = ref object ## can be a string, an int etc.
-
   # Types which are just "strings" in javscript
   BodyPart* = distinct cstring
   StructureType* = distinct cstring
@@ -332,6 +330,7 @@ converter bodyPart*(a: BodyPart): cstring {.importcpp: "#".}
 converter structureType*(a: StructureType): cstring {.importcpp: "#".}
 converter modeType*(a: ModeType): cstring {.importcpp: "#".}
 converter resourceType*(a: ResourceType): cstring {.importcpp: "#".}
+converter lookType*(a: LookType): cstring {.importcpp: "#".}
 
 template FIND_DROPPED_RESOURCES* = FIND_DROPPED_ENERGY
 
@@ -353,9 +352,6 @@ const ERR_NO_BODYPART* = -12
 const ERR_RCL_NOT_ENOUGH* = -14
 const ERR_GCL_NOT_ENOUGH* = -15
 
-proc `==`*(a, b: LookType): bool {.borrow.}
-proc `$`*(a: LookType): string {.borrow.}
-
 const LOOK_CREEPS* = "creep".LookType
 const LOOK_ENERGY* = "energy".LookType
 const LOOK_RESOURCES* = "resource".LookType
@@ -367,7 +363,9 @@ const LOOK_CONSTRUCTION_SITES* = "constructionSite".LookType
 const LOOK_NUKES* = "nuke".LookType
 const LOOK_TERRAIN* = "terrain".LookType
 
-const OBSTACLE_OBJECT_TYPES* = ["spawn", "creep", "wall", "source", "constructedWall", "extension", "link", "storage", "tower", "observer", "powerSpawn", "powerBank", "lab", "terminal", "nuker"]
+const OBSTACLE_OBJECT_TYPES* = ["spawn".cstring, "creep", "wall", "source",
+  "constructedWall", "extension", "link", "storage", "tower", "observer",
+  "powerSpawn", "powerBank", "lab", "terminal", "nuker"]
 
 const MOVE* = "move".BodyPart # 50
 const WORK* = "work".BodyPart # 100
@@ -392,41 +390,6 @@ const MODE_SIMULATION* = "simulation".ModeType
 const MODE_SURVIVAL* = "survival".ModeType
 const MODE_WORLD* = "world".ModeType
 const MODE_ARENA* = "arena".ModeType
-
-proc isUndefined*[T](x: T): bool {.importcpp: "((#)==undefined)".}
-proc isEmpty*[T](x: T): bool {.importcpp: "((#)=={})".}
-
-proc `[]`*[K,V](d: JSAssoc[K,V]; k: K): V {.importcpp: "#[#]".}
-proc `[]=`*[K,V](d: JSAssoc[K,V]; k: K; v: V) {.importcpp: "#[#] = #".}
-proc hasKey*[K,V](d: JSAssoc[K,V]; k: K): bool {.importcpp: "((#).hasOwnProperty(#))".}
-
-proc delete*[K,V](d: JSAssoc[K,V]; k: K) {.importcpp: "delete #[#]".}
-
-{.push warning[Uninit]:off.}
-iterator pairs*[K,V](d: JSAssoc[K,V]): (K,V) =
-  var k: K
-  var v: V
-  {.emit: "for (var `k` in `d`) {".}
-  {.emit: "  if (!`d`.hasOwnProperty(`k`)) continue;".}
-  {.emit: "  `v`=`d`[`k`];".}
-  yield (k, v)
-  {.emit: "}".}
-
-iterator items*[K,V](d: JSAssoc[K,V]): V =
-  var v: V
-  {.emit: "for (var k in `d`) {".}
-  {.emit: "  if (!`d`.hasOwnProperty(k)) continue;".}
-  {.emit: "  `v`=`d`[k];".}
-  yield v
-  {.emit: "}".}
-
-iterator keys*[K,V](d: JSAssoc[K,V]): K =
-  var k: K
-  {.emit: "for (var `k` in `d`) {".}
-  {.emit: "  if (!`d`.hasOwnProperty(`k`)) continue;".}
-  yield k
-  {.emit: "}".}
-{.pop.}
 
 # screeps specials
 
@@ -461,12 +424,6 @@ proc calcEnergyCost*(body: openArray[BodyPart]): int =
 
 #proc creepsMem*(memory: Memory, ty: typedesc): JSAssoc[cstring, ty] =
 #  result = cast[JSAssoc[cstring, ty]](memory.creeps)
-
-proc carrySum*(creep: Creep): int =
-  result = 0
-  for kind, value in creep.carry:
-    #console stringify kind
-    result += value
 
 # don't know if I like that
 template `.`*(a: JSAssoc, f: untyped): auto =

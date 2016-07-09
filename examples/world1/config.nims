@@ -1,3 +1,5 @@
+--d:logext # we use extened logging
+
 task build, "build":
   setCommand("js")
   --d:nodejs

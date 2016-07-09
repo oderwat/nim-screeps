@@ -76,3 +76,9 @@ proc travel*(creep: Creep, destRoom: RoomName | Room): int =
     let roomName = destRoom
   var rp = newRoomPosition(25, 25, roomName)
   creep.moveTo(rp)
+
+proc carrySum*(creep: Creep): int =
+  result = 0
+  for kind, value in creep.carry:
+    #console stringify kind
+    result += value

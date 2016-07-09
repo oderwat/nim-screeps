@@ -1,6 +1,8 @@
 # nop
 # run nim build --verbosity:1 --hint[processing]:off --hint[conf]:off main.nim
 
+import system except echo, log
+
 import screeps
 import types
 import utils_stats
@@ -175,7 +177,7 @@ proc roomControl*(room: Room) =
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
-  if clevel >= 2 and stats.fighters < 4 and stats.workers >= 2:
+  if clevel >= 2 and stats.fighters < 3 and stats.workers >= 2:
     log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -183,7 +185,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
         log "New Fighter", name, "is spawning"
-  elif stats.workers < 14:
+  elif stats.workers < 8:
     log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -191,7 +193,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
         log "New Worker", name, "is spawning"
-  elif clevel >= 3 and stats.pirates < 4:
+  elif clevel >= 3 and stats.pirates < 1:
     log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  pirateBody.calcEnergyCost:
       for spawn in game.spawns:

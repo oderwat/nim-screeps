@@ -1,7 +1,7 @@
 # Next are my Visual Studio Code - Runner Script commands.
 #
-# nim build --verbosity:1 --hint[processing]:off --hint[conf]:off
-## nim build --verbosity:1 --hint[processing]:off --hint[conf]:off -d:screepsprofiler
+# nim build --verbosity:1  --hint[processing]:off --hint[conf]:off
+## nim build --verbosity:1 --hint[processing]:off --hint[conf]:off --d:screepsprofiler
 #
 # world1 example for Screep
 #
@@ -33,7 +33,8 @@ import role_pirate
 #converter roomMemory(mem: MemoryEntry): RoomMemory = mem.RoomMemory
 
 screepsLoop: # this conaints the main loop which is exported to the game
-  log game.time & " ticks"
+  logS game.time & " ticks", info
+
   #echo CONSTRUCTION_COST["road"]
 
   # initialize room memory (once)
@@ -60,7 +61,8 @@ screepsLoop: # this conaints the main loop which is exported to the game
       log "Clearing non-existing creep memory:", name
 
   if deads > 0:
-    log "R.I.P. x", deads
+    log "R.I.P.", deads
+
   #
   # Running some tasks and the room Controller for each room we pocess
   #
