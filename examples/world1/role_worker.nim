@@ -6,22 +6,6 @@ import system except echo, log
 import screeps
 import types
 
-proc energyNeeded(creep: Creep): auto =
-  result = creep.room.find(Structure) do (struct: Structure) -> bool:
-    if struct.structureType == STRUCTURE_TYPE_SPAWN:
-      let spawn = struct.StructureSpawn
-      result = spawn.energy < spawn.energyCapacity
-
-    elif struct.structureType == STRUCTURE_TYPE_EXTENSION:
-      let extension = struct.StructureExtension
-      result = extension.energy < extension.energyCapacity
-
-    elif struct.structureType == STRUCTURE_TYPE_TOWER:
-      let tower = struct.StructureTower
-      result = tower.energy < tower.energyCapacity
-
-    else: result = false
-
 proc roleWorker*(creep: Creep) =
   var cm = creep.memory.CreepMemory # convert
 
@@ -44,15 +28,17 @@ proc roleWorker*(creep: Creep) =
       creep.say "Full"
       cm.refilling = false
   else:
-    var needEnergy = energyNeeded(creep)
+    #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
     if cm.action == Charge:
-      if needEnergy.len > 0:
-        let target = needEnergy[0]
-        #echo "Charging: ", target.structureType, at target.pos
-        if creep.transfer(target, RESOURCE_TYPE_ENERGY) != OK:
-          creep.moveTo(target)
+      # just charge was is closest to the creep
+      var target = game.getObjectById(cm.targetId, EnergizedStructure)
+      #echo "Charging: ", target.structureType, at target.pos
+      var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
+      if ret == ERR_NOT_IN_RANGE:
+        creep.moveTo(target)
       else:
+        creep.say($ret.int)
         cm.action = Idle
 
     elif cm.action == Build:
@@ -78,12 +64,6 @@ proc roleWorker*(creep: Creep) =
     elif cm.action == Upgrade:
       if creep.upgradeController(creep.room.controller) != OK:
         creep.moveTo(creep.room.controller)
-
-    if cm.action == Idle:
-      if needEnergy.len > 0:
-        cm.action = Charge
-      else:
-        cm.action = Upgrade
 
     #for target in targets:
     #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id

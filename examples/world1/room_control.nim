@@ -10,6 +10,22 @@ import utils_stats
 import handle_repairs
 import handle_tower
 
+proc energyNeeded(room: Room): auto =
+  result = room.find(Structure) do (struct: Structure) -> bool:
+    if struct.structureType == STRUCTURE_TYPE_SPAWN:
+      let spawn = struct.StructureSpawn
+      result = spawn.energy < spawn.energyCapacity
+
+    elif struct.structureType == STRUCTURE_TYPE_EXTENSION:
+      let extension = struct.StructureExtension
+      result = extension.energy < extension.energyCapacity
+
+    elif struct.structureType == STRUCTURE_TYPE_TOWER:
+      let tower = struct.StructureTower
+      result = tower.energy < tower.energyCapacity
+
+    else: result = false
+
 proc roomControl*(room: Room) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
@@ -139,23 +155,26 @@ proc roomControl*(room: Room) =
 
   # we always charge with 3 creeps
   if stats.charging < 3: # never less than 3
+    var needEnergy = energyNeeded(room)
 
     if stats.idle > 0:
       for creep in creeps:
         let m = creep.memory.CreepMemory
         if m.action == Idle:
           m.action = Charge
-          m.targetId = nil
+          var closest = creep.pos.findClosestByPath(needEnergy)
+          m.targetId = closest.id
           inc stats.charging
           dec stats.idle
           break;
 
-    elif stats.upgrading > 2:
+    elif stats.upgrading > 1:
       for creep in creeps:
         let m = creep.memory.CreepMemory
         if m.action == Upgrade:
           m.action = Charge
-          m.targetId = nil
+          var closest = creep.pos.findClosestByPath(needEnergy)
+          m.targetId = closest.id
           inc stats.charging
           dec stats.upgrading
           break;
@@ -165,10 +184,22 @@ proc roomControl*(room: Room) =
         let m = creep.memory.CreepMemory
         if m.action == Build:
           m.action = Charge
-          m.targetId = nil
+          var closest = creep.pos.findClosestByPath(needEnergy)
+          m.targetId = closest.id
           inc stats.charging
           dec stats.building
           break;
+
+  # if we have idle creeps let them upgrade
+  if stats.idle > 0:
+    for creep in creeps:
+      let m = creep.memory.CreepMemory
+      if m.action == Idle:
+        m.action = Upgrade
+        m.targetId = nil
+        inc stats.upgrading
+        dec stats.idle
+        break;
 
   if clevel >= 2:
     handleRepairs(room, creeps, stats)
