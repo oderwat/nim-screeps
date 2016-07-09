@@ -6,6 +6,7 @@ import system except echo, log
 import screeps
 import types
 import utils_stats
+import sequtils
 
 proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats) =
   var hitsmissing = 0
@@ -35,53 +36,23 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats) =
       log site.id, site.hits, site.structureType
 
     # utilize some new creeps if less than 1 or structs < 90% and less than 4
-    if (stats.repairing < 1) or
-      (hitsmissing > 0 and stats.repairing < 4): # never more than 4
+    if (stats.repairing.len < 1) or
+      (hitsmissing > 0 and stats.repairing.len < 4): # never more than 4
 
-      if stats.idle > 0:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Idle:
-            m.action = Repair
-            inc stats.repairing
-            dec stats.idle
-            break;
+      if stats.idle.len > 0:
+        changeAction(stats, Idle, Repair)
 
-      elif stats.upgrading > 2:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Upgrade:
-            m.action = Repair
-            inc stats.repairing
-            dec stats.upgrading
-            break;
+      elif stats.upgrading.len > 2:
+        changeAction(stats, Upgrade, Repair)
 
-      elif stats.building > 3:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Build:
-            m.action = Repair
-            inc stats.repairing
-            dec stats.building
-            break;
+      elif stats.building.len > 3:
+        changeAction(stats, Build, Repair)
 
-      elif stats.charging > 4:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Charge:
-            m.action = Repair
-            inc stats.repairing
-            dec stats.charging
-            break;
+      elif stats.charging.len > 4:
+        changeAction(stats, Charge, Repair)
 
-    if hitsmissing == 0 and stats.repairing > 1:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Repair:
-            m.action = Idle
-            dec stats.repairing
-            inc stats.idle
-            break;
+    if hitsmissing == 0 and stats.repairing.len > 1:
+        changeAction(stats, Repair, Idle)
 
     for creep in creeps:
       let m = creep.memory.CreepMemory

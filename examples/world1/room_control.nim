@@ -63,7 +63,7 @@ proc roomControl*(room: Room) =
   pirateBody = @[ATTACK, MOVE, ATTACK, MOVE]
 
   # level 1 or all workers gone?
-  if room.energyCapacityAvailable < 450 or stats.workers < 2:
+  if room.energyCapacityAvailable < 450 or stats.workers.len < 2:
     #body = @[WORK, WORK, CARRY, MOVE]
     workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
@@ -107,99 +107,38 @@ proc roomControl*(room: Room) =
     for site in csites:
       log site.id, site.progressTotal - site.progress, site.structureType
 
-    if stats.building < 6: # never more than 6
+    if stats.building.len < 6: # never more than 6
 
-      if stats.idle > 0:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Idle:
-            m.action = Build
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.building
-            dec stats.idle
-            break;
+      if stats.idle.len > 0:
+        changeActionToClosest(stats, Charge, Build, csites)
 
-      elif stats.upgrading > 2:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Upgrade:
-            m.action = Build
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.building
-            dec stats.upgrading
-            break;
+      elif stats.upgrading.len > 2:
+        changeActionToClosest(stats, Upgrade, Build, csites)
 
-      elif stats.charging > 4:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Charge:
-            m.action = Build
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.building
-            dec stats.charging
-            break;
+      elif stats.charging.len > 4:
+        changeActionToClosest(stats, Charge, Build, csites)
 
-      elif stats.building < 3 and stats.repairing > 3:
-        for creep in creeps:
-          let m = creep.memory.CreepMemory
-          if m.action == Repair:
-            m.action = Build
-            var closest = creep.pos.findClosestByPath(csites)
-            m.targetId = closest.id
-            inc stats.building
-            dec stats.repairing
-            break;
+      elif stats.building.len < 3 and stats.repairing.len > 3:
+        changeActionToClosest(stats, Repair, Build, csites)
+
 
   # we always charge with 3 creeps
-  if stats.charging < 3: # never less than 3
-    var needEnergy = energyNeeded(room)
+  var needEnergy = energyNeeded(room)
 
-    if stats.idle > 0:
-      for creep in creeps:
-        let m = creep.memory.CreepMemory
-        if m.action == Idle:
-          m.action = Charge
-          var closest = creep.pos.findClosestByPath(needEnergy)
-          m.targetId = closest.id
-          inc stats.charging
-          dec stats.idle
-          break;
+  if needEnergy.len > 0 and stats.charging.len < 4: # never less than 3
 
-    elif stats.upgrading > 1:
-      for creep in creeps:
-        let m = creep.memory.CreepMemory
-        if m.action == Upgrade:
-          m.action = Charge
-          var closest = creep.pos.findClosestByPath(needEnergy)
-          m.targetId = closest.id
-          inc stats.charging
-          dec stats.upgrading
-          break;
+    if stats.idle.len > 0:
+      changeActionToClosest(stats, Idle, Charge, needEnergy)
 
-    elif stats.building > 3:
-      for creep in creeps:
-        let m = creep.memory.CreepMemory
-        if m.action == Build:
-          m.action = Charge
-          var closest = creep.pos.findClosestByPath(needEnergy)
-          m.targetId = closest.id
-          inc stats.charging
-          dec stats.building
-          break;
+    elif stats.upgrading.len > 1:
+      changeActionToClosest(stats, Upgrade, Charge, needEnergy)
+
+    elif stats.building.len > 3:
+      changeActionToClosest(stats, Build, Charge, needEnergy)
 
   # if we have idle creeps let them upgrade
-  if stats.idle > 0:
-    for creep in creeps:
-      let m = creep.memory.CreepMemory
-      if m.action == Idle:
-        m.action = Upgrade
-        m.targetId = nil
-        inc stats.upgrading
-        dec stats.idle
-        break;
+  if stats.idle.len > 0:
+    changeAction(stats, Idle, Upgrade)
 
   if clevel >= 2:
     handleRepairs(room, creeps, stats)
@@ -208,7 +147,7 @@ proc roomControl*(room: Room) =
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
-  if clevel >= 2 and stats.fighters < 3 and stats.workers >= 2:
+  if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 2:
     log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -216,7 +155,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
         log "New Fighter", name, "is spawning"
-  elif stats.workers < 8:
+  elif stats.workers.len < 10:
     log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -224,7 +163,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(workBody, nil, rm)
         dump name
         log "New Worker", name, "is spawning"
-  elif clevel >= 3 and stats.pirates < 1:
+  elif clevel >= 3 and stats.pirates.len < 1:
     log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  pirateBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -242,4 +181,5 @@ proc roomControl*(room: Room) =
     handleTower(tower)
 
   # show what we have right now
-  dump stats
+  stats.log
+
