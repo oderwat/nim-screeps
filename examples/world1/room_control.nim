@@ -62,8 +62,8 @@ proc roomControl*(room: Room) =
   # just for fun :)
   pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
 
-  # level 1 or all workers gone?
-  if room.energyCapacityAvailable < 450 or stats.workers.len < 2:
+  # level 1 or all workers gone, fallback to low energy ones?
+  if room.energyCapacityAvailable < 450 or stats.workers.len < 6:
     #body = @[WORK, WORK, CARRY, MOVE]
     workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
@@ -133,7 +133,7 @@ proc roomControl*(room: Room) =
     elif stats.upgrading.len > 1:
       changeActionToClosest(stats, Upgrade, Charge, needEnergy)
 
-    elif stats.building.len > 3:
+    elif stats.building.len > 3 or stats.charging.len < 3:
       changeActionToClosest(stats, Build, Charge, needEnergy)
 
   if clevel >= 2:
@@ -147,7 +147,7 @@ proc roomControl*(room: Room) =
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
-  if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 2:
+  if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 8:
     log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
     if room.energyAvailable >=  fightBody.calcEnergyCost:
       for spawn in game.spawns:
@@ -155,7 +155,7 @@ proc roomControl*(room: Room) =
         var name = spawn.createCreep(fightBody, nil, rm)
         dump name
         log "New Fighter", name, "is spawning"
-  elif stats.workers.len < 8:
+  elif stats.workers.len < 10:
     log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
     if room.energyAvailable >=  workBody.calcEnergyCost:
       for spawn in game.spawns:
