@@ -11,12 +11,23 @@ import handle_repairs
 import handle_tower
 
 proc energyNeeded(room: Room): auto =
+  # udate spawn energy first
   result = room.find(Structure) do (struct: Structure) -> bool:
     if struct.structureType == STRUCTURE_TYPE_SPAWN:
       let spawn = struct.StructureSpawn
-      result = spawn.energy < spawn.energyCapacity
+      return spawn.energy < spawn.energyCapacity
+    else:
+      return false
 
-    elif struct.structureType == STRUCTURE_TYPE_EXTENSION:
+  if result.len > 0:
+    return
+
+  result = room.find(Structure) do (struct: Structure) -> bool:
+    #if struct.structureType == STRUCTURE_TYPE_SPAWN:
+    #  let spawn = struct.StructureSpawn
+    #  result = spawn.energy < spawn.energyCapacity
+
+    if struct.structureType == STRUCTURE_TYPE_EXTENSION:
       let extension = struct.StructureExtension
       result = extension.energy < extension.energyCapacity
 
@@ -78,13 +89,14 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE]
 
   var needCreeps = 0
+  var intrudersDetected = false
 
   # counting of needed creeps is not yet really ok but better than before
   var spawns = room.findMy(StructureSpawn)
   if spawns.len == 0:
     logH "Room has no (owned) spawns"
   else:
-    if clevel >= 2 and stats.fighters.len < 2 and stats.workers.len >= 8:
+    if clevel >= 2 and stats.fighters.len < 2 and stats.workers.len >= 8 and intrudersDetected:
       log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  fightBody.calcEnergyCost:
@@ -119,7 +131,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             dec needCreeps
             break
 
-  logS room.name & " needs " & needCreeps & " Creeps", info
+  if needCreeps > 0:
+    logS room.name & " needs " & needCreeps & " Creeps", info
 
   var csites = room.find(ConstructionSite)
   # Sort by smalles energy cost for finishing construction
@@ -166,10 +179,15 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
         changeActionToClosest(stats, Repair, Build, csites)
 
 
-  # we always charge with 3 creeps
+  # charge handling
   var needEnergy = energyNeeded(room)
 
-  if needEnergy.len > 0 and stats.charging.len < 6: # never less than 4
+  let minChargers = 2
+  let maxChargers = 6
+
+  #logS "needEnergy " & needEnergy.len, debug
+  if needEnergy.len > 0 and stats.charging.len < maxChargers: # never less than 2
+    #logS "changing to chargers", debug
 
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
@@ -177,15 +195,15 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     elif (needCreeps > 0 and stats.upgrading.len > 0) or stats.upgrading.len > 1:
       changeActionToClosest(stats, Upgrade, Charge, needEnergy)
 
-    elif stats.building.len > 3 or stats.charging.len < 3:
+    elif (stats.building.len > 0 and stats.charging.len < minChargers) or stats.building.len > 3:
       changeActionToClosest(stats, Build, Charge, needEnergy)
 
   if clevel >= 2:
-    handleRepairs(room, creeps, stats)
+    handleRepairs(room, creeps, stats, needCreeps)
 
   # if we have idle creeps let them upgrade
-  if stats.idle.len > 0:
-    changeAction(stats, Idle, Upgrade)
+  #if stats.idle.len > 0:
+  #  changeAction(stats, Idle, Upgrade)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name

@@ -4,6 +4,7 @@
 import system except echo, log
 
 import screeps
+import screeps_utils
 import types
 
 type
@@ -61,6 +62,21 @@ proc actionToSeq*(stats: Stats, action: Actions): seq[Creep] =
     logS "unsuported change action " & $action, error
     return
 
+proc short*(action: Actions): cstring =
+  if action == Idle:
+    result = "I"
+  elif action == Charge:
+    result = "C"
+  elif action == Repair:
+    result = "R"
+  elif action == Build:
+    result = "B"
+  elif action == Upgrade:
+    result = "U"
+  else:
+    logS "unsuported change action " & $action, error
+    return
+
 proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
   var
     src = actionToSeq(stats, srcAction)
@@ -85,7 +101,9 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     dst.add creep
     src.del idx
     var closest = creep.pos.findClosestByPath(targets)
-    m.targetId = closest.id
+    if m.targetId != closest.id or true:
+      creep.say dstAction.short & closest.pos.at
+      m.targetId = closest.id
     break
 
 proc log*(stats: Stats, globalPirates: seq[Creep]) =
