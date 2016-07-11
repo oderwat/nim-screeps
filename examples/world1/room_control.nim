@@ -133,8 +133,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
 
   for spawn in spawns:
     if spawn.spawning != nil:
-      let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
-      log "Spawning", $$rm.role, spawn.spawning.remainingTime
+      let m = memory.creeps[spawn.spawning.name].CreepMemory
+      if m != nil:
+        log "Spawning", $$m.role, spawn.spawning.remainingTime
+      else: logS "Missing memory for spawning creep", error
       dec needCreeps
 
   if needCreeps > 0:
@@ -188,8 +190,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   # charge handling
   var needEnergy = energyNeeded(room)
 
-  let minChargers = 2
-  let maxChargers = 6
+  let minChargers = if needEnergy.len <= 3: 2 else: needEnergy.len div 6
+  let maxChargers = if needEnergy.len <= 3: 2 else: needEnergy.len div 3
 
   #logS "needEnergy " & needEnergy.len, debug
   if needEnergy.len > 0 and stats.charging.len < maxChargers: # never less than 2
@@ -213,7 +215,6 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
 
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
-    stats.charging.len > needEnergy.len div 3 and
     stats.charging.len > minChargers:
       changeAction(stats, Charge, Upgrade)
 
