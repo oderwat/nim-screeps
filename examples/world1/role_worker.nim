@@ -31,7 +31,6 @@ proc roleWorker*(creep: Creep) =
     #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
     if cm.action == Charge:
-      # just charge was is closest to the creep
       var target = game.getObjectById(cm.targetId, EnergizedStructure)
       #echo "Charging: ", target.structureType, at target.pos
       var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)

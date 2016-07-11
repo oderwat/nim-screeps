@@ -10,18 +10,7 @@ import utils_stats
 import handle_repairs
 import handle_tower
 
-proc energyNeeded(room: Room): auto =
-  # udate spawn energy first
-  result = room.find(Structure) do (struct: Structure) -> bool:
-    if struct.structureType == STRUCTURE_TYPE_SPAWN:
-      let spawn = struct.StructureSpawn
-      return spawn.energy < spawn.energyCapacity
-    else:
-      return false
-
-  if result.len > 0:
-    return
-
+proc energyNeededTotal(room: Room): auto =
   result = room.find(Structure) do (struct: Structure) -> bool:
     #if struct.structureType == STRUCTURE_TYPE_SPAWN:
     #  let spawn = struct.StructureSpawn
@@ -35,7 +24,33 @@ proc energyNeeded(room: Room): auto =
       let tower = struct.StructureTower
       result = tower.energy < tower.energyCapacity
 
+    #elif struct.structureType == STRUCTURE_TYPE_STORAGE:
+    #  let tower = struct.StructureStorage
+    #  result = tower.energy < tower.energyCapacity
+
     else: result = false
+
+proc energyNeeded(room: Room): auto =
+  # udate spawn energy first
+  result = room.find(Structure) do (struct: Structure) -> bool:
+    if struct.structureType == STRUCTURE_TYPE_SPAWN:
+      let spawn = struct.StructureSpawn
+      return spawn.energy.float < spawn.energyCapacity.float * 0.90
+    return false
+
+  if result.len > 0:
+    return result
+
+  result = room.find(Structure) do (struct: Structure) -> bool:
+    if struct.structureType == STRUCTURE_TYPE_TOWER:
+      let tower = struct.StructureTower
+      return tower.energy.float < tower.energyCapacity.float * 0.75
+    return false
+
+  if result.len > 0:
+    return result
+
+  return room.energyNeededTotal
 
 proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName) =
   # is null for sim
@@ -133,10 +148,13 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
 
   for spawn in spawns:
     if spawn.spawning != nil:
+      log "Spawning something"
       let m = memory.creeps[spawn.spawning.name].CreepMemory
+      dump m
       if m != nil:
         log "Spawning", $$m.role, spawn.spawning.remainingTime
-      else: logS "Missing memory for spawning creep", error
+      else:
+        logS "Missing memory for spawning creep", error
       dec needCreeps
 
   if needCreeps > 0:
@@ -188,13 +206,15 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
 
 
   # charge handling
-  var needEnergy = energyNeeded(room)
+  var totalEnergyNeeded = energyNeededTotal(room)
 
-  let minChargers = if needEnergy.len <= 3: 2 else: needEnergy.len div 6
-  let maxChargers = if needEnergy.len <= 3: 2 else: needEnergy.len div 3
+  let minChargers = if totalEnergyNeeded.len <= 3: 2 else: totalEnergyNeeded.len div 6
+  let maxChargers = if totalEnergyNeeded.len <= 3: 2 else: totalEnergyNeeded.len div 3
 
   #logS "needEnergy " & needEnergy.len, debug
-  if needEnergy.len > 0 and stats.charging.len < maxChargers: # never less than 2
+  if totalEnergyNeeded.len > 0 and stats.charging.len < maxChargers: # never less than 2
+    # prioritized answers
+    var needEnergy = energyNeeded(room)
     #logS "changing to chargers", debug
 
     if stats.idle.len > 0:

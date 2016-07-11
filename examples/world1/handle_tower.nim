@@ -10,7 +10,7 @@ proc handleTower*(tower: StructureTower) =
     var closestHostile = tower.findClosestHostileByRange(Creep)
     if closestHostile != nil:
       tower.attack(closestHostile)
-    elif tower.energy > tower.energyCapacity div 2:
+    elif tower.energy > tower.energyCapacity div 4:
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
         if structure.hits == structure.hitsMax:
           return false
