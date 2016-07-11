@@ -34,7 +34,10 @@ proc handleTower*(tower: StructureTower) =
         if structure.structureType == STRUCTURE_TYPE_ROAD:
           return structure.hits < structure.hitsMax div 2
 
-        dump structure.structureType
+        if structure.structureType == STRUCTURE_TYPE_STORAGE:
+          return structure.hits < structure.hitsMax div 4
+
+        logH "handleTower found a " & structure.structureType & " structure"
         structure.hits < structure.hitsMax div 5
 
       if closestDamagedStructure != nil:

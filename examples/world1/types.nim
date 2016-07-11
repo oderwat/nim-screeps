@@ -29,3 +29,5 @@ type
 
   RoomMemory* = ref object of MemoryEntry
     war*: bool
+
+const NOROOM* = "".RoomName

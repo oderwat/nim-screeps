@@ -1,3 +1,6 @@
+# nop
+# run nim build --hint[conf]:off main.nim
+
 --d:logext # we use extened logging
 
 hint("processing", off)

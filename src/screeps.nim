@@ -383,6 +383,7 @@ const STRUCTURE_TYPE_WALL* = "constructedWall".StructureType
 const STRUCTURE_TYPE_ROAD* = "road".StructureType
 const STRUCTURE_TYPE_RAMPART* = "rampart".StructureType
 const STRUCTURE_TYPE_CONTROLLER* = "controller".StructureType
+const STRUCTURE_TYPE_STORAGE* = "storage".StructureType
 
 const RESOURCE_TYPE_ENERGY* = "energy".ResourceType
 
@@ -446,6 +447,7 @@ proc findClosestByRange*[T](pos: RoomPosition, objs: seq[T]): T =
 template typeToFind*(what: typedesc): FindTargets =
   when what is Source: FIND_SOURCES
   elif what is ConstructionSite: FIND_CONSTRUCTION_SITES
+  elif what is StructureSpawn: {.error: "Use find with my or hostile".}
   elif what is Structure: FIND_STRUCTURES
   elif what is Creep: FIND_CREEPS
   elif what is ConstructionSite: FIND_CONSTRUCTION_SITES
@@ -453,11 +455,13 @@ template typeToFind*(what: typedesc): FindTargets =
 
 template typeToFindHostile*(what: typedesc): FindTargets =
   when what is Creep: FIND_HOSTILE_CREEPS
+  elif what is StructureSpawn: FIND_HOSTILE_SPAWNS
   elif what is Structure: FIND_HOSTILE_STRUCTURES
   else: {.error: "impossible find".}
 
 template typeToFindMy*(what: typedesc): FindTargets =
   when what is Creep: FIND_MY_CREEPS
+  elif what is StructureSpawn: FIND_MY_SPAWNS
   elif what is Structure: FIND_MY_STRUCTURES
   elif what is ConstructionSite: FIND_MY_CONSTRUCTION_SITES
   else: {.error: "impossible find".}

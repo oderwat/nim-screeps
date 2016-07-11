@@ -26,7 +26,7 @@ proc energyNeeded(room: Room): auto =
 
     else: result = false
 
-proc roomControl*(room: Room) =
+proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
   #for k, v in exits:
@@ -76,6 +76,50 @@ proc roomControl*(room: Room) =
   else:
     workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE]
+
+  var needCreeps = 0
+
+  # counting of needed creeps is not yet really ok but better than before
+  var spawns = room.findMy(StructureSpawn)
+  if spawns.len == 0:
+    logH "Room has no (owned) spawns"
+  else:
+    if clevel >= 2 and stats.fighters.len < 2 and stats.workers.len >= 8:
+      log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
+      inc needCreeps
+      if room.energyAvailable >=  fightBody.calcEnergyCost:
+        for spawn in spawns:
+          let rm = CreepMemory(role: Fighter, refilling: true, action: Idle)
+          var name = spawn.createCreep(fightBody, nil, rm)
+          log "New Fighter", name, "is spawning"
+          if name != "":
+            dec needCreeps
+            break
+    elif stats.workers.len < 10:
+      log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      inc needCreeps
+      if room.energyAvailable >=  workBody.calcEnergyCost:
+        for spawn in spawns:
+          let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
+          var name = spawn.createCreep(workBody, nil, rm)
+          log "New Worker", name, "is spawning"
+          if name != "":
+            dec needCreeps
+            break
+    # we count pirates global (and currently spwan in any room we own)
+    elif clevel >= 3 and globalPirates.len < (if pirateTarget != NOROOM: 4 else: 1):
+      log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      inc needCreeps
+      if room.energyAvailable >=  pirateBody.calcEnergyCost:
+        for spawn in spawns:
+          let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
+          var name = spawn.createCreep(pirateBody, nil, rm)
+          log "New Pirate", name, "is spawning"
+          if name != "":
+            dec needCreeps
+            break
+
+  logS room.name & " needs " & needCreeps & " Creeps", info
 
   var csites = room.find(ConstructionSite)
   # Sort by smalles energy cost for finishing construction
@@ -130,7 +174,7 @@ proc roomControl*(room: Room) =
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
 
-    elif stats.upgrading.len > 1:
+    elif (needCreeps > 0 and stats.upgrading.len > 0) or stats.upgrading.len > 1:
       changeActionToClosest(stats, Upgrade, Charge, needEnergy)
 
     elif stats.building.len > 3 or stats.charging.len < 3:
@@ -147,39 +191,14 @@ proc roomControl*(room: Room) =
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
-  if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 8:
-    log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
-    if room.energyAvailable >=  fightBody.calcEnergyCost:
-      for spawn in game.spawns:
-        let rm = CreepMemory(role: Fighter, refilling: true, action: Idle)
-        var name = spawn.createCreep(fightBody, nil, rm)
-        dump name
-        log "New Fighter", name, "is spawning"
-  elif stats.workers.len < 10:
-    log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
-    if room.energyAvailable >=  workBody.calcEnergyCost:
-      for spawn in game.spawns:
-        let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
-        var name = spawn.createCreep(workBody, nil, rm)
-        dump name
-        log "New Worker", name, "is spawning"
-  elif clevel >= 3 and stats.pirates.len < 1:
-    log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
-    if room.energyAvailable >=  pirateBody.calcEnergyCost:
-      for spawn in game.spawns:
-        let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
-        var name = spawn.createCreep(pirateBody, nil, rm)
-        dump name
-        log "New Pirate", name, "is spawning"
-
   # Handle towers if available
   var towers = room.find(StructureTower) do(a: StructureTower) -> bool:
     a.structureType == STRUCTURE_TYPE_TOWER
 
-  log "have", towers.len, "towers"
+  #logS "have " & towers.len & " towers", info
   for tower in towers:
     handleTower(tower)
 
   # show what we have right now
-  stats.log
+  stats.log globalPirates
 

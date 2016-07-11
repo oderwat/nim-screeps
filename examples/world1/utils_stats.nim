@@ -88,10 +88,10 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     m.targetId = closest.id
     break
 
-proc log*(stats: Stats) =
+proc log*(stats: Stats, globalPirates: seq[Creep]) =
   logS "workers: " & stats.workers.len & " / " &
     "fighters: " & stats.fighters.len & " / " &
-    "pirates: " & stats.pirates.len & " / " &
+    "pirates: " & stats.pirates.len & " (" & globalPirates.len & ") / " &
     "charging: " & stats.charging.len & " / " &
     "building: " & stats.building.len & " / " &
     "upgrading: " & stats.upgrading.len & " / " &

@@ -20,7 +20,7 @@ import utils_stats
 # thats not in github... for reasons
 #include piratetarget
 when not declared(piratetarget):
-  const pirateTarget="".RoomName
+  const pirateTarget = NOROOM
 
 import room_control
 
@@ -63,6 +63,15 @@ screepsLoop: # this conaints the main loop which is exported to the game
   if deads > 0:
     log "R.I.P.", deads
 
+  # we need to handle pirates global
+  var pirates: seq[Creep] = @[]
+  for creep in game.creeps:
+    let cm = creep.memory.CreepMemory
+    case cm.role:
+      of Pirate:
+        pirates.add creep
+      else: discard
+
   #
   # Running some tasks and the room Controller for each room we pocess
   #
@@ -80,7 +89,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
           cm.sourceId = sources[idx mod sources.len].id
           inc idx
     # the main room controler logic
-    roomControl(room)
+    roomControl(room, pirates, pirateTarget)
 
 
   # let the creeps do their jobs
