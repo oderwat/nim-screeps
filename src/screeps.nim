@@ -11,9 +11,6 @@ import macros, strutils
 import jsext
 export jsext
 
-#when not declared(log): # this is kind of an dummy as js backend defines that already
-#  proc log*(txts: varargs[cstring, `$$`])  {.importc: "console.log".}
-
 when defined(logext):
   type LogSeverity* = enum
     reserved, # just keep that reserved
@@ -32,16 +29,16 @@ when defined(logext):
     "red",
     "orange" ]
 
-  proc log*(s: cstring) {.importcpp: "console.log(\"<font color=\\\"" & $colors[normal] &
-    "\\\" severity=\\\"3\\\">\" + @ + \"</font>\")", varargs.}
+  proc log*(s: cstring) {.importcpp: "jslog(\"<font color=\\\"" & $colors[normal] &
+    "\\\" severity=\\\"3\\\">\", @ ,\"</font>\")", varargs.}
 
   proc logS*(message: cstring, severity: LogSeverity = normal) =
-    consoleLog "<font color='" & colors[severity] & "' " & """severity="""" &
+    jsLog "<font color='" & colors[severity] & "' " & """severity="""" &
       severity & """"""" & ">" & message & "</font>"
 
   proc logH*(message: cstring) =
     const highlight = "#ffff00".cstring
-    consoleLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
+    jsLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
 
   proc dump*(args: varargs[cstring, stringify]) =
     for x in args: logS x, debug

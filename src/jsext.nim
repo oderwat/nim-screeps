@@ -9,6 +9,10 @@ type
 #
 # You should use log() and keep in mind that it adds spaces between parameter in the output
 
+{.emit: staticRead("jslog.js") & "\n" .}
+# specialized for logging into console with tags in arguments
+proc jsLog*(s: cstring) {.importc: "jslog", varargs.}
+# standard console log
 proc consoleLog*(s: cstring) {.importc: "console.log", varargs.}
 proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
 

@@ -148,9 +148,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
 
   for spawn in spawns:
     if spawn.spawning != nil:
-      log "Spawning something"
       let m = memory.creeps[spawn.spawning.name].CreepMemory
-      dump m
       if m != nil:
         log "Spawning", $$m.role, spawn.spawning.remainingTime
       else:

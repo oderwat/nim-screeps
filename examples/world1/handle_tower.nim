@@ -10,7 +10,7 @@ proc handleTower*(tower: StructureTower) =
     var closestHostile = tower.findClosestHostileByRange(Creep)
     if closestHostile != nil:
       tower.attack(closestHostile)
-    elif tower.energy > tower.energyCapacity div 4:
+    elif tower.energy > tower.energyCapacity div 3:
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
         if structure.hits == structure.hitsMax:
           return false
@@ -33,8 +33,8 @@ proc handleTower*(tower: StructureTower) =
         if structure.structureType == STRUCTURE_TYPE_RAMPART:
           return structure.hits < 50000
 
-        # keep everyting else at 95 %
-        return structure.hits.float / structure.hitsMax.float <= 0.95
+        # keep everyting else at 80 %
+        return structure.hits.float / structure.hitsMax.float <= 0.80
 
         #logH "handleTower found a " & structure.structureType & " structure"
         #structure.hits < structure.hitsMax div 5
