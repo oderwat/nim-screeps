@@ -254,9 +254,16 @@ type
   # TODO: StructurePoweSpawn
   # TODO: StructureRampart
 
+  SpawningObj* {.exportc.} = object
+    name*: cstring
+    needTime*: int
+    remainingTime*: int
+
+  Spawning* = ref SpawningObj
+
   StructureSpawnObj* = object of EnergizedStructureObj
     name*: cstring
-    spawning*: pointer
+    spawning*: Spawning
 
   StructureSpawn* = ref StructureSpawnObj
 

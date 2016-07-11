@@ -103,8 +103,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
         for spawn in spawns:
           let rm = CreepMemory(role: Fighter, refilling: true, action: Idle)
           var name = spawn.createCreep(fightBody, nil, rm)
-          log "New Fighter", name, "is spawning"
           if name != "":
+            log "New Fighter", name, "is spawning"
             dec needCreeps
             break
     elif stats.workers.len < 10:
@@ -114,8 +114,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
         for spawn in spawns:
           let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
           var name = spawn.createCreep(workBody, nil, rm)
-          log "New Worker", name, "is spawning"
           if name != "":
+            log "New Worker", name, "is spawning"
             dec needCreeps
             break
     # we count pirates global (and currently spwan in any room we own)
@@ -126,10 +126,16 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
         for spawn in spawns:
           let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
           var name = spawn.createCreep(pirateBody, nil, rm)
-          log "New Pirate", name, "is spawning"
           if name != "":
+            log "New Pirate", name, "is spawning"
             dec needCreeps
             break
+
+  for spawn in spawns:
+    if spawn.spawning != nil:
+      let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
+      log "Spawning", $$rm.role, spawn.spawning.remainingTime
+      dec needCreeps
 
   if needCreeps > 0:
     logS room.name & " needs " & needCreeps & " Creeps", info
@@ -192,7 +198,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
 
-    elif (needCreeps > 0 and stats.upgrading.len > 0) or stats.upgrading.len > 1:
+    elif (needCreeps > 0 and stats.upgrading.len > 0) or stats.charging.len < minChargers:
       changeActionToClosest(stats, Upgrade, Charge, needEnergy)
 
     elif (stats.building.len > 0 and stats.charging.len < minChargers) or stats.building.len > 3:
@@ -202,8 +208,14 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     handleRepairs(room, creeps, stats, needCreeps)
 
   # if we have idle creeps let them upgrade
-  #if stats.idle.len > 0:
-  #  changeAction(stats, Idle, Upgrade)
+  if stats.idle.len > 0:
+    changeAction(stats, Idle, Upgrade)
+
+  # no creeps needed and enough chargers available. move others to Upgrader
+  if needCreeps == 0 and
+    stats.charging.len > needEnergy.len div 3 and
+    stats.charging.len > minChargers:
+      changeAction(stats, Charge, Upgrade)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name

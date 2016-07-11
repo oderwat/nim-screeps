@@ -18,7 +18,7 @@ import types
 import utils_stats
 
 # thats not in github... for reasons
-#include piratetarget
+include piratetarget
 when not declared(piratetarget):
   const pirateTarget = NOROOM
 

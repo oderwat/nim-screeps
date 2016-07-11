@@ -77,10 +77,16 @@ proc short*(action: Actions): cstring =
     logS "unsuported change action " & $action, error
     return
 
+proc `$$`*(role: Roles): cstring =
+  if role == Worker: "worker".cstring
+  elif role == Fighter: "fighter".cstring
+  elif role == Pirate: "pirate".cstring
+  else: "unknown".cstring
+
 proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
   var
     src = actionToSeq(stats, srcAction)
-    dst = actionToSeq(stats, srcAction)
+    dst = actionToSeq(stats, dstAction)
 
   for idx, creep in src:
     var m = creep.memory.CreepMemory
@@ -93,7 +99,7 @@ proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
 proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
   var
     src = actionToSeq(stats, srcAction)
-    dst = actionToSeq(stats, srcAction)
+    dst = actionToSeq(stats, dstAction)
 
   for idx, creep in src:
     var m = creep.memory.CreepMemory

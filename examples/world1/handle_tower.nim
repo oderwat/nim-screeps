@@ -12,7 +12,9 @@ proc handleTower*(tower: StructureTower) =
       tower.attack(closestHostile)
     elif tower.energy > tower.energyCapacity div 2:
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
-        # Tower repairs if hits are below 20 percent
+        if structure.hits == structure.hitsMax:
+          return false
+
         if structure.structureType == STRUCTURE_TYPE_TOWER:
           return false
 
@@ -31,15 +33,11 @@ proc handleTower*(tower: StructureTower) =
         if structure.structureType == STRUCTURE_TYPE_RAMPART:
           return structure.hits < 50000
 
-        if structure.structureType == STRUCTURE_TYPE_ROAD:
-          return structure.hits < structure.hitsMax div 2
+        # keep everyting else at 95 %
+        return structure.hits.float / structure.hitsMax.float <= 0.95
 
-        if structure.structureType == STRUCTURE_TYPE_STORAGE:
-          return structure.hits < structure.hitsMax div 4
-
-        logH "handleTower found a " & structure.structureType & " structure"
-        structure.hits < structure.hitsMax div 5
+        #logH "handleTower found a " & structure.structureType & " structure"
+        #structure.hits < structure.hitsMax div 5
 
       if closestDamagedStructure != nil:
         tower.repair(closestDamagedStructure)
-
