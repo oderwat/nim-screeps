@@ -25,8 +25,6 @@ proc roleWorker*(creep: Creep) =
     cm.refilling = true
 
   if cm.refilling == true:
-    if creep.ticksToLive == 1:
-      logH "wasted " & creep.carry.energy & " on death"
 
     if creep.carry.energy < creep.carryCapacity:
       var source = game.getObjectById(cm.sourceId, Source)
@@ -41,8 +39,6 @@ proc roleWorker*(creep: Creep) =
       creep.say "Full"
       cm.refilling = false
   else:
-    if creep.ticksToLive == 1:
-      logH "wasted " & creep.carry.energy & " on death"
 
     #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
@@ -82,3 +78,8 @@ proc roleWorker*(creep: Creep) =
 
     #for target in targets:
     #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id
+
+  # if there is only one tick left we drop our energy so others could pick it up
+  if creep.ticksToLive == 1:
+    logH "dropprt: " & creep.drop(RESOURCE_TYPE_ENERGY)
+    logH "dropped " & creep.carry.energy & " on death"

@@ -30,4 +30,8 @@ type
   RoomMemory* = ref object of MemoryEntry
     war*: bool
 
+  GameMemory* = ref object of MemoryObj
+    cmd*: cstring
+    logStats*: bool
+
 const NOROOM* = "".RoomName

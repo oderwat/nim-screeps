@@ -28,16 +28,21 @@ import role_worker
 import role_fighter
 import role_pirate
 
-const compiletime = staticExec("date +'%Y-%m-%d %H:%M:%S'")
+#const compiletime = staticExec("date +'%Y-%m-%d %H:%M:%S'")
 
 # would work but easier leads to errors I guess
 #converter creepMemory(mem: MemoryEntry): CreepMemory = mem.CreepMemory
 #converter roomMemory(mem: MemoryEntry): RoomMemory = mem.RoomMemory
 
+proc cmdTester(txt: cstring): int =
+  memory.GameMemory.cmd = txt
+  logS "received cmd: " & txt, info
+
 screepsLoop: # this conaints the main loop which is exported to the game
-  logS game.time & " ticks (compiled at " & compiletime & ")", info
+  #logS game.time & " ticks (compiled at " & compiletime & ")", info
 
   #echo CONSTRUCTION_COST["road"]
+  registerCmd("cmd", cmdTester)
 
   # initialize room memory (once)
   for name, rm in memory.rooms:
@@ -95,9 +100,12 @@ screepsLoop: # this conaints the main loop which is exported to the game
     # the main room controler logic
     roomControl(room, pirates, pirateTarget)
 
-
+  var minTicks = 999999
   # let the creeps do their jobs
   for creep in game.creeps:
+    if creep.ticksToLive < minTicks:
+      minTicks = creep.ticksToLive
+
     let cm = creep.memory.CreepMemory
     case cm.role:
       of Worker:
@@ -112,3 +120,5 @@ screepsLoop: # this conaints the main loop which is exported to the game
       else:
         log "unknown creep role", creep.name
         creep.say "???"
+
+  #logS "Next death in " & minTicks & " ticks."

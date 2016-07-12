@@ -29,7 +29,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
 
   if repairs.len > 0:
     # we need at least one builder in this room
-    log "having", repairs.len, "structures to repair (", hitsmissing, " hits)"
+    #log "having", repairs.len, "structures to repair (", hitsmissing, " hits)"
 
     # shrink the number of repair sites to 4
     if repairs.len > 4:

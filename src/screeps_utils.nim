@@ -51,6 +51,9 @@ proc info*(controller: StructureController): ControllerInfo =
   # tbc
   return
 
+proc registerCmd*(cmd: cstring, cb: proc(a: cstring): int {.closure.}) =
+  {.emit: "if(Game.nim == undefined) Game.nim = {}; Game.nim[`cmd`] = `cb`\n".}
+
 template at*(pos: RoomPosition): cstring = "@(" & $pos.x & "," & $pos.y & ")"
 template at*(obj: RoomObject): cstring = at obj.pos
 

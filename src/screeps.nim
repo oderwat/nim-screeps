@@ -114,11 +114,14 @@ type
   #MemoryEntryObj* = object
   MemoryEntry* = ref object of RootObj #MemoryEntryObj
 
-  MemoryObj*  {.exportc.} = object
+  MemoryObj*  {.exportc.} = object of RootObj
     creeps*: JSAssoc[cstring, MemoryEntry]
     rooms*:  JSAssoc[cstring, MemoryEntry]
 
   Memory* = ref MemoryObj
+
+  OptionsObj* = object of RootObj
+  Options* = ref OptionsObj
 
   InvadersObj*  {.exportc.} = ref object
     bodies*: seq[cstring]
@@ -205,7 +208,13 @@ type
 
   # TODO: Mineral
   # TODO: Nuke
-  # TODO: Resource
+
+  ResourceObj* {.exportc.} = object of RoomObjectObj
+    id*: cstring
+    amount*: int
+    resourceType*: ResourceType
+
+  Resource* = ref ResourceObj
 
   SourceObj* {.exportc.} =  object of RoomObjectObj
     energy*: int
@@ -344,7 +353,7 @@ converter modeType*(a: ModeType): cstring {.importcpp: "#".}
 converter resourceType*(a: ResourceType): cstring {.importcpp: "#".}
 converter lookType*(a: LookType): cstring {.importcpp: "#".}
 
-template FIND_DROPPED_RESOURCES* = FIND_DROPPED_ENERGY
+const FIND_DROPPED_RESOURCES* = FIND_DROPPED_ENERGY
 
 const OK* = 0
 const ERR_NOT_OWNER* = -1
@@ -453,6 +462,12 @@ proc getObjectById*(game: Game, id: cstring, what: typedesc): what {.importcpp: 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
 
+proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T], filter: proc(s: T): bool): T =
+  {.emit: "`result` = `pos`.findClosestByPath(`objs`, { filter: `filter` });\n".}
+
+proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T], opts: Options): T =
+  {.emit: "`result` = `pos`.findClosestByPath(`objs`, `opts` });\n".}
+
 proc findClosestByRange*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(`objs`);\n".}
 
@@ -462,6 +477,7 @@ template typeToFind*(what: typedesc): FindTargets =
   elif what is StructureSpawn: {.error: "Use find with my or hostile".}
   elif what is Structure: FIND_STRUCTURES
   elif what is Creep: FIND_CREEPS
+  elif what is Resource: FIND_DROPPED_RESOURCES
   elif what is ConstructionSite: FIND_CONSTRUCTION_SITES
   else: {.error: "impossible find".}
 
@@ -537,10 +553,14 @@ var targets = creep.room.findStructures(opts)
 
 proc say*(creep: Creep, txt: cstring) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
+proc attackController*(creep: Creep, controller: StructureController): int {.importcpp.}
 proc suicide*(creep: Creep) {.importcpp.}
+proc drop*(creep: Creep, resource: ResourceType): int {.discardable,importcpp.}
+proc drop*(creep: Creep, resource: ResourceType, ammount: int): int {.discardable,importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
+proc dismantle*(creep: Creep, structure: Structure): int {.discardable,importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
 proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
@@ -551,6 +571,13 @@ proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcp
 
 proc moveTo*(creep: Creep, pos: RoomPosition): int {.importcpp, discardable.}
 proc moveTo*(creep: Creep, obj: RoomObject): int {.importcpp, discardable.}
+
+proc createConstructionSite*(pos: RoomPosition, structure: StructureType): int {.importcpp, discardable.}
+
+proc createFlag*(pos: RoomPosition): int {.importcpp, discardable.}
+proc createFlag*(pos: RoomPosition, name: cstring): int {.importcpp, discardable.}
+proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors): int {.importcpp, discardable.}
+proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors, col2: Colors): int {.importcpp, discardable.}
 
 proc filterCreeps*(filter: proc(creep: Creep): bool): seq[Creep] =
   {.emit: "`result` = _.filter(Game.creeps, `filter`);\n".}

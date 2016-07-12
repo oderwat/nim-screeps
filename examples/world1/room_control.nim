@@ -65,7 +65,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
 
-  log "Room Capacity:", room.energyAvailable, "/", room.energyCapacityAvailable
+  #log "Room Capacity:", room.energyAvailable, "/", room.energyCapacityAvailable
 
   let sources = room.find(Source)
   let creeps = room.findMy(Creep)
@@ -112,7 +112,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     logH "Room has no (owned) spawns"
   else:
     if clevel >= 2 and stats.fighters.len < 2 and stats.workers.len >= 8 and intrudersDetected:
-      log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
+      #log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  fightBody.calcEnergyCost:
         for spawn in spawns:
@@ -123,7 +123,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             dec needCreeps
             break
     elif stats.workers.len < 10:
-      log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      #log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  workBody.calcEnergyCost:
         for spawn in spawns:
@@ -135,7 +135,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             break
     # we count pirates global (and currently spwan in any room we own)
     elif clevel >= 3 and globalPirates.len < (if pirateTarget != NOROOM: 4 else: 1):
-      log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      #log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  pirateBody.calcEnergyCost:
         for spawn in spawns:
@@ -150,13 +150,14 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     if spawn.spawning != nil:
       let m = memory.creeps[spawn.spawning.name].CreepMemory
       if m != nil:
-        log "Spawning", $$m.role, spawn.spawning.remainingTime
+        #log "Spawning", $$m.role, spawn.spawning.remainingTime
+        discard
       else:
         logS "Missing memory for spawning creep", error
       dec needCreeps
 
-  if needCreeps > 0:
-    logS room.name & " needs " & needCreeps & " Creeps", info
+  #if needCreeps > 0:
+  #  logS room.name & " needs " & needCreeps & " Creeps", info
 
   var csites = room.find(ConstructionSite)
   # Sort by smalles energy cost for finishing construction
@@ -248,6 +249,26 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   for tower in towers:
     handleTower(tower)
 
-  # show what we have right now
-  stats.log globalPirates
+  var gm = memory.GameMemory
+  if  gm.cmd == "toggle stats":
+    gm.cmd = nil
+    gm.logStats = not gm.logStats
 
+  if gm.logStats or gm.cmd == "show stats":
+    if gm.cmd == "show stats":
+      gm.cmd = nil
+    stats.log globalPirates
+
+  # check for dropped resources
+  let drops = room.find(Resource)
+  for resource in drops:
+    let slurper = resource.pos.findClosestByPath(creeps) do (creep: Creep) -> bool:
+      let cm = creep.memory.CreepMemory
+      creep.carry.energy < creep.carryCapacity
+
+    if slurper != nil:
+      log "testing ", slurper.name
+    else:
+      log "no slurper"
+
+    log "on the floor is ", resource.amount, "of", resource.resourceType
