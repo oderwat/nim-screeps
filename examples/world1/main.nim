@@ -121,4 +121,5 @@ screepsLoop: # this conaints the main loop which is exported to the game
         log "unknown creep role", creep.name
         creep.say "???"
 
-  #logS "Next death in " & minTicks & " ticks."
+  if minTicks < 4:
+    logS "Next death in " & minTicks & " ticks."

@@ -262,12 +262,33 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   # check for dropped resources
   let drops = room.find(Resource)
   for resource in drops:
+    # need at least be "something"
+    if resource.amount < 5: continue
+    # who wants it? vultures :)
     let slurper = resource.pos.findClosestByPath(creeps) do (creep: Creep) -> bool:
       let cm = creep.memory.CreepMemory
-      creep.carry.energy < creep.carryCapacity
+      # workers only of course
+      if cm.role != Worker: return false
+      let free = creep.carryCapacity - creep.carry.energy
+      if free == 0: return false
+      #let distance = resource.pos.getRangeTo(creep.pos)
+      # get the path and check its lenght
+      let path = resource.pos.findPathTo(creep.pos)
+      let distance = path.len
+      # estimate if there will be something left
+      let estimate = resource.amount - (distance + distance div 2)
+      if estimate > 0 and free >= estimate:
+        logH creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate
+        true
+      else:
+        logS creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate, debug
+        false
 
     if slurper != nil:
-      log "testing ", slurper.name
+      let cm = slurper.memory.CreepMemory
+      cm.refilling = true
+      cm.slurpId = resource.id
+      slurper.say "Vulture"
     else:
       log "no slurper"
 

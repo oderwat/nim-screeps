@@ -27,13 +27,36 @@ proc roleWorker*(creep: Creep) =
   if cm.refilling == true:
 
     if creep.carry.energy < creep.carryCapacity:
-      var source = game.getObjectById(cm.sourceId, Source)
-      let ret = creep.harvest(source)
-      if ret == ERR_NOT_IN_RANGE:
-        creep.moveTo(source)
-      elif ret != OK and ret != ERR_BUSY:
-        creep.say "#?%!"
-        log creep.name, "is lost:", ret
+      if cm.slurpId != nil:
+        let resource = game.getObjectById(cm.slurpId, Resource)
+        if resource == nil:
+          cm.slurpId = nil
+          cm.refilling = false
+          creep.say "Gone?"
+          log creep.name, "Gone?"
+        else:
+          let ret = creep.pickup(resource)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(resource)
+          elif ret == OK:
+            creep.say "Slurped"
+            log creep.name, "Slurped"
+            cm.slurpId = nil
+            cm.refilling = false
+          elif ret != OK and ret != ERR_BUSY:
+            creep.say "Cough"
+            log creep.name, "Cough", ret
+            cm.slurpId = nil
+            cm.refilling = false
+      else:
+        let source = game.getObjectById(cm.sourceId, Source)
+        let ret = creep.harvest(source)
+        if ret == ERR_NOT_IN_RANGE:
+          creep.moveTo(source)
+        elif ret != OK and ret != ERR_BUSY:
+          creep.say "#?%!"
+          log creep.name, "is lost:", ret
+
     else:
       #echo creep.name, " is now full"
       creep.say "Full"
@@ -79,7 +102,7 @@ proc roleWorker*(creep: Creep) =
     #for target in targets:
     #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id
 
-  # if there is only one tick left we drop our energy so others could pick it up
+  # if there is only one tick left we drop our energy so others can pick it up
   if creep.ticksToLive == 1:
-    logH "dropprt: " & creep.drop(RESOURCE_TYPE_ENERGY)
+    creep.drop(RESOURCE_TYPE_ENERGY)
     logH "dropped " & creep.carry.energy & " on death"

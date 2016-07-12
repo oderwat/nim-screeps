@@ -25,7 +25,8 @@ type
     action*: Actions
     refilling*: bool
     targetId*: cstring # Id of RoomObject
-    sourceId*: cstring # which source to use
+    sourceId*: cstring # which (harvest) source to use
+    slurpId*: cstring # where to slurp
 
   RoomMemory* = ref object of MemoryEntry
     war*: bool

@@ -145,6 +145,15 @@ type
 
   User* = ref UserObj
 
+  PathStepsObj* {.exportc.} = object
+    x: int
+    y: int
+    dx: int
+    dy: int
+    direction: Directions
+
+  PathSteps* = ref PathStepsObj
+
   RoomObj* {.exportc.} = object
     name*: cstring
     mode*: cstring
@@ -553,6 +562,7 @@ var targets = creep.room.findStructures(opts)
 
 proc say*(creep: Creep, txt: cstring) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
+proc pickup*(creep: Creep, resource: Resource): int {.importcpp.}
 proc attackController*(creep: Creep, controller: StructureController): int {.importcpp.}
 proc suicide*(creep: Creep) {.importcpp.}
 proc drop*(creep: Creep, resource: ResourceType): int {.discardable,importcpp.}
@@ -562,18 +572,20 @@ proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.im
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc dismantle*(creep: Creep, structure: Structure): int {.discardable,importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
-proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
-proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
 proc attack*(creep: Creep, hostile: Creep | Structure): int {.importcpp.}
-proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
+proc moveTo*(creep: Creep, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
 
-proc moveTo*(creep: Creep, pos: RoomPosition): int {.importcpp, discardable.}
-proc moveTo*(creep: Creep, obj: RoomObject): int {.importcpp, discardable.}
+proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
+proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
+proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 
+proc findPath*(room: Room, pos: RoomPosition, target: RoomPosition): seq[PathSteps] {.importcpp, discardable.}
+
+proc findPathTo*(pos: RoomPosition, target: RoomPosition | RoomObject): seq[PathSteps] {.importcpp, discardable.}
+proc getRangeTo*(pos: RoomPosition, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
 proc createConstructionSite*(pos: RoomPosition, structure: StructureType): int {.importcpp, discardable.}
-
 proc createFlag*(pos: RoomPosition): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors): int {.importcpp, discardable.}
@@ -581,8 +593,6 @@ proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors, col2: Colors): 
 
 proc filterCreeps*(filter: proc(creep: Creep): bool): seq[Creep] =
   {.emit: "`result` = _.filter(Game.creeps, `filter`);\n".}
-
-proc sort* [T](objs: seq[T], sortcm: proc(a, b: T): int) {.importcpp: "#.sort(#)".}
 
 # A whole bunch of constant getting imported here
 # I am not sure if I want it like this though...
