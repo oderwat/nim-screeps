@@ -179,11 +179,19 @@ type
   ConstructionSite* = ref ConstructionSiteObj
 
   CreepObj* {.exportc.} = object of RoomObjectObj
-    name*: cstring
     body*: seq[BodyPart]
-    memory*: MemoryEntry
     carry*: JSAssoc[ResourceType, int]
     carryCapacity*: int
+    fatigue*: int
+    hits*: int
+    hitsMax*: int
+    id*: cstring
+    memory*: MemoryEntry
+    my*: bool
+    name*: cstring
+    owner*: User
+    spawning*: bool
+    ticksToLive*: int
 
   Creep* = ref CreepObj
 
@@ -529,11 +537,13 @@ var targets = creep.room.findStructures(opts)
 
 proc say*(creep: Creep, txt: cstring) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
+proc suicide*(creep: Creep) {.importcpp.}
 proc transfer*(creep: Creep, structure: Structure, resource: ResourceType): int {.importcpp.}
 proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.importcpp.}
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
+proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
 proc attack*(creep: Creep, hostile: Creep | Structure): int {.importcpp.}
 proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}

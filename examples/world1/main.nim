@@ -28,12 +28,14 @@ import role_worker
 import role_fighter
 import role_pirate
 
+const compiletime = staticExec("date +'%Y-%m-%d %H:%M:%S'")
+
 # would work but easier leads to errors I guess
 #converter creepMemory(mem: MemoryEntry): CreepMemory = mem.CreepMemory
 #converter roomMemory(mem: MemoryEntry): RoomMemory = mem.RoomMemory
 
 screepsLoop: # this conaints the main loop which is exported to the game
-  logS game.time & " ticks", info
+  logS game.time & " ticks (compiled at " & compiletime & ")", info
 
   #echo CONSTRUCTION_COST["road"]
 
@@ -76,10 +78,12 @@ screepsLoop: # this conaints the main loop which is exported to the game
   # Running some tasks and the room Controller for each room we pocess
   #
   for room in game.rooms:
-    if room.controller.my == false: continue
+    # skipping room control for rooms we don't own
+    if room.controller == nil or room.controller.my == false: continue
     # if we have deads
     if redistribute:
       # redistribute sources
+      logH "Distributing sources"
       let sources = room.find(Source)
       let creeps = room.findMy(Creep)
       var idx = 0

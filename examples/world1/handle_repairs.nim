@@ -17,7 +17,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
     if s.hitsMax < 6000:
       if s.hits.float / s.hitsMax.float <= 0.95:
         hitsmissing += s.hitsMax - s.hits
-        logS s.hits & " " & s.structureType, debug
+        #logS s.hits & " " & s.structureType, debug
 
     s.hits < s.hitsMax
 
@@ -35,8 +35,8 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
     if repairs.len > 4:
       repairs = repairs[0..3]
 
-    for site in repairs:
-      log site.id, site.hits, site.structureType
+    #for site in repairs:
+    #  log site.id, site.hits, site.structureType
 
     # utilize some new creeps if less than 1 or structs < 90% and less than 4
     if (stats.repairing.len < 1) or

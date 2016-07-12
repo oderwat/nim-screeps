@@ -12,9 +12,22 @@ proc roleWorker*(creep: Creep) =
   # so we can act on the same tick
   if creep.carry.energy == 0 and not cm.refilling:
     creep.say "Empty"
+    # check if we want to continue or kill that creep
+    if creep.ticksToLive < 50:
+      creep.say "Oh No!"
+      logH creep.name & ": Oh No! (" & creep.ticksToLive & ")"
+
+    if creep.ticksToLive < 48:
+      creep.suicide
+      logH creep.name & " committed sucicide"
+      return
+
     cm.refilling = true
 
   if cm.refilling == true:
+    if creep.ticksToLive == 1:
+      logH "wasted " & creep.carry.energy & " on death"
+
     if creep.carry.energy < creep.carryCapacity:
       var source = game.getObjectById(cm.sourceId, Source)
       let ret = creep.harvest(source)
@@ -28,6 +41,9 @@ proc roleWorker*(creep: Creep) =
       creep.say "Full"
       cm.refilling = false
   else:
+    if creep.ticksToLive == 1:
+      logH "wasted " & creep.carry.energy & " on death"
+
     #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
     if cm.action == Charge:

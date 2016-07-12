@@ -1,3 +1,5 @@
+import ospaths
+
 task build, "build":
   setCommand("js")
   --d:nodejs
@@ -21,4 +23,4 @@ task build, "build":
   if release:
     --opt:speed
 
-  switch("o","../../deploy/sim1/main.js")
+  switch("o",thisDir() / "../../deploy/sim1/main.js")

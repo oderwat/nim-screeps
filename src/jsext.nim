@@ -18,6 +18,7 @@ proc stringify*[T](x: T): cstring {.importc: "JSON.stringify".}
 
 proc isUndefined*[T](x: T): bool {.importcpp: "((#)==undefined)".}
 proc isEmpty*[T](x: T): bool {.importcpp: "((#)=={})".}
+proc isUndefinedOrEmpty*[T](x: T): bool = isUndefined(x) or isEmpty(x)
 
 proc `[]`*[K,V](d: JSAssoc[K,V]; k: K): V {.importcpp: "#[#]".}
 proc `[]=`*[K,V](d: JSAssoc[K,V]; k: K; v: V) {.importcpp: "#[#] = #".}
