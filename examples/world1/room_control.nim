@@ -104,14 +104,14 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE]
 
   var needCreeps = 0
-  var intrudersDetected = false
+  #var intrudersDetected = false
 
   # counting of needed creeps is not yet really ok but better than before
   var spawns = room.findMy(StructureSpawn)
   if spawns.len == 0:
     logH "Room has no (owned) spawns"
   else:
-    if clevel >= 2 and stats.fighters.len < 2 and stats.workers.len >= 8 and intrudersDetected:
+    if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 10:
       #log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  fightBody.calcEnergyCost:
@@ -134,7 +134,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             dec needCreeps
             break
     # we count pirates global (and currently spwan in any room we own)
-    elif clevel >= 3 and globalPirates.len < (if pirateTarget != NOROOM: 4 else: 1):
+    elif clevel >= 3 and globalPirates.len < (if pirateTarget != NOROOM: 4 else: 2):
       #log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       inc needCreeps
       if room.energyAvailable >=  pirateBody.calcEnergyCost:
@@ -275,9 +275,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
       # get the path and check its lenght
       let path = resource.pos.findPathTo(creep.pos)
       let distance = path.len
+      # no grannies please
+      if creep.ticksToLive < distance + 200: return false
       # estimate if there will be something left
       let estimate = resource.amount - (distance + distance div 2)
-      if estimate > 0 and free >= estimate:
+      if estimate > 0 and (free >= estimate or (creep.carryCapacity > 0 and estimate > creep.carryCapacity)):
         logH creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate
         true
       else:
@@ -288,6 +290,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
       let cm = slurper.memory.CreepMemory
       cm.refilling = true
       cm.slurpId = resource.id
+      log slurper.name, "is Vulture"
       slurper.say "Vulture"
     else:
       log "no slurper"

@@ -12,7 +12,7 @@ proc handleTower*(tower: StructureTower) =
       tower.attack(closestHostile)
 
     if tower.energy > 0:
-      var closestDamegedCreep = tower.findClosestByRange(Creep) do(creep: Creep) -> bool:
+      var closestDamegedCreep = tower.findMyClosestByRange(Creep) do(creep: Creep) -> bool:
         if creep.hits < creep.hitsMax:
           tower.heal(creep)
 

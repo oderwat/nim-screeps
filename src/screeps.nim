@@ -517,6 +517,15 @@ proc findClosestByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what
 proc findClosestHostileByRange*(pos: RoomPosition, what: typedesc): what =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ");\n".}
 
+proc findClosestHostileByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
+
+proc findMyClosestByRange*(pos: RoomPosition, what: typedesc): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ");\n".}
+
+proc findMyClosestByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+  {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
+
 proc find*(room: Room, what: typedesc): seq[what] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFind(what) & ");\n".}
