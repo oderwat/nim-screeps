@@ -10,8 +10,10 @@ import screeps
 type
   Roles* = enum
     Worker    # 0
-    Defender   # 1
+    Defender  # 1
     Pirate    # 2
+    Tank      # 3
+    Healer    # 4
 
   Actions* = enum
     Idle      # 0

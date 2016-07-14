@@ -27,6 +27,8 @@ import room_control
 import role_worker
 import role_defender
 import role_pirate
+import role_tank
+import role_healer
 
 #const compiletime = staticExec("date +'%Y-%m-%d %H:%M:%S'")
 
@@ -124,6 +126,12 @@ screepsLoop: # this conaints the main loop which is exported to the game
       of Pirate:
         creep.rolePirate pirateTarget
         #creep.say "Hoho!"
+      of Tank:
+        creep.roleTank
+        #creep.say "Tank"
+      of Healer:
+        creep.roleHealer
+        #creep.say "Healer"
       else:
         log "unknown creep role", creep.name
         creep.say "???"

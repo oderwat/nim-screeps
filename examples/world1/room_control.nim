@@ -84,9 +84,13 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   var workBody: seq[BodyPart]
   var fightBody: seq[BodyPart]
   var pirateBody: seq[BodyPart]
+  var healerBody: seq[BodyPart]
+  var tankBody: seq[BodyPart]
 
   # just for fun :)
   pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
+  tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
+  healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
 
   # level 1 or all workers gone, fallback to low energy ones?
   if room.energyCapacityAvailable < 450 or stats.workers.len < 6:
@@ -113,20 +117,6 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   if spawns.len == 0:
     logH "Room has no (owned) spawns"
   else:
-    let wantDefenders = if clevel >= 2: 3 else: 2
-    if stats.defenders.len < wantDefenders:
-      log "need defenders (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
-      needCreeps += wantDefenders - stats.defenders.len
-      if stats.workers.len >= 10:
-        if room.energyAvailable >= fightBody.calcEnergyCost:
-          for spawn in spawns:
-            let rm = CreepMemory(role: Defender, refilling: true, action: Idle)
-            var name = spawn.createCreep(fightBody, nil, rm)
-            if name != "":
-              log "New Defender", name, "is spawning"
-              dec needCreeps
-              break
-
     let wantWorkers = 10
     if stats.workers.len < wantWorkers:
       log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
@@ -139,19 +129,35 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             log "New Worker", name, "is spawning"
             dec needCreeps
             break
+
+    let wantDefenders = if clevel >= 2: 3 else: 2
+    if stats.defenders.len < wantDefenders:
+      log "need defenders (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
+      needCreeps += wantDefenders - stats.defenders.len
+      if stats.workers.len >= wantWorkers:
+        if room.energyAvailable >= fightBody.calcEnergyCost:
+          for spawn in spawns:
+            let rm = CreepMemory(role: Defender, refilling: true, action: Idle)
+            var name = spawn.createCreep(fightBody, nil, rm)
+            if name != "":
+              log "New Defender", name, "is spawning"
+              dec needCreeps
+              break
+
     # we count pirates global (and currently spwan in any room we own)
     let wantPirates = if clevel >= 3: 4 else: 0
     if globalPirates.len < wantPirates:
       log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       needCreeps += wantPirates - globalPirates.len
-      if room.energyAvailable >= pirateBody.calcEnergyCost:
-        for spawn in spawns:
-          let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
-          var name = spawn.createCreep(pirateBody, nil, rm)
-          if name != "":
-            log "New Pirate", name, "is spawning"
-            dec needCreeps
-            break
+      if stats.workers.len >= wantWorkers:
+        if room.energyAvailable >= pirateBody.calcEnergyCost:
+          for spawn in spawns:
+            let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
+            var name = spawn.createCreep(pirateBody, nil, rm)
+            if name != "":
+              log "New Pirate", name, "is spawning"
+              dec needCreeps
+              break
 
     for spawn in spawns:
       if spawn.spawning != nil:
