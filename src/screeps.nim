@@ -463,9 +463,6 @@ proc calcEnergyCost*(body: openArray[BodyPart]): int =
 #proc creepsMem*(memory: Memory, ty: typedesc): JSAssoc[cstring, ty] =
 #  result = cast[JSAssoc[cstring, ty]](memory.creeps)
 
-# don't know if I like that
-template `.?`*(a: JSAssoc, f: untyped): auto = a[astToStr(f)]
-
 template energy*(carry: JSAssoc[ResourceType, int]): int =
   carry[RESOURCE_TYPE_ENERGY]
 

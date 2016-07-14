@@ -27,6 +27,8 @@ proc hasKey*[K,V](d: JSAssoc[K,V]; k: K): bool {.importcpp: "((#).hasOwnProperty
 proc delete*[K,V](d: JSAssoc[K,V]; k: K) {.importcpp: "delete #[#]".}
 proc sort* [T](objs: seq[T], sortcm: proc(a, b: T): int) {.importcpp: "#.sort(#)".}
 
+template `.?`*(a: JSAssoc, f: untyped): auto = a[astToStr(f)]
+
 {.push warning[Uninit]:off.}
 iterator pairs*[K,V](d: JSAssoc[K,V]): (K,V) =
   var k: K
