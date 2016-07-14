@@ -74,6 +74,13 @@ type
   LookType* = distinct cstring
   RoomName* = distinct cstring
 
+  BodyObj* = object
+    part* {.exportc: "type".}: BodyPart # same as below
+    `type`*: BodyPart
+    hits*: int
+
+  Body* = ref BodyObj
+
   RouteEntryObj* = object
     exit*: FindTargets
     name*: cstring
@@ -191,7 +198,7 @@ type
   ConstructionSite* = ref ConstructionSiteObj
 
   CreepObj* {.exportc.} = object of RoomObjectObj
-    body*: seq[BodyPart]
+    body*: seq[Body]
     carry*: JSAssoc[ResourceType, int]
     carryCapacity*: int
     fatigue*: int
@@ -457,8 +464,7 @@ proc calcEnergyCost*(body: openArray[BodyPart]): int =
 #  result = cast[JSAssoc[cstring, ty]](memory.creeps)
 
 # don't know if I like that
-template `.`*(a: JSAssoc, f: untyped): auto =
-  a[f]
+template `.?`*(a: JSAssoc, f: untyped): auto = a[astToStr(f)]
 
 template energy*(carry: JSAssoc[ResourceType, int]): int =
   carry[RESOURCE_TYPE_ENERGY]
@@ -466,7 +472,7 @@ template energy*(carry: JSAssoc[ResourceType, int]): int =
 var game* {.noDecl, importc: "Game".}: Game
 var memory* {.noDecl, importc: "Memory".}: Memory
 
-proc getObjectById*(game: Game, id: cstring, what: typedesc): what {.importcpp: "#.getObjectById(#)".}
+proc getObjectById*[T](game: Game, id: cstring, what: typedesc[T]): T {.importcpp: "#.getObjectById(#)".}
 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
@@ -508,49 +514,49 @@ converter towerToPos*(obj: StructureTower): RoomPosition = obj.pos
 converter roomName*(rname: cstring | string): RoomName = rname.RoomName
 #converter roomName*(rname: string): RoomName = rname.RoomName
 
-proc findClosestByRange*(pos: RoomPosition, what: typedesc): what =
+proc findClosestByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ");\n".}
 
-proc findClosestByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+proc findClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ", { filter: `filter` });\n".}
 
-proc findClosestHostileByRange*(pos: RoomPosition, what: typedesc): what =
+proc findClosestHostileByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ");\n".}
 
-proc findClosestHostileByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+proc findClosestHostileByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
-proc findMyClosestByRange*(pos: RoomPosition, what: typedesc): what =
+proc findMyClosestByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ");\n".}
 
-proc findMyClosestByRange*(pos: RoomPosition, what: typedesc, filter: proc(s: what): bool): what =
+proc findMyClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
 
-proc find*(room: Room, what: typedesc): seq[what] =
+proc find*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFind(what) & ");\n".}
 
-proc find*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
+proc find*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFind(what) & ", { filter: `filter` });\n".}
 
-proc findMy*(room: Room, what: typedesc): seq[what] =
+proc findMy*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ");\n".}
 
-proc findMy*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
+proc findMy*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
 
-proc findHostile*(room: Room, what: typedesc): seq[what] =
+proc findHostile*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ");\n".}
 
-proc findHostile*(room: Room, what: typedesc, filter: proc(s: what): bool): seq[what] =
+proc findHostile*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
-proc find*(room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
+proc find*[T](room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
 
 proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[RouteEntry] {.importcpp.}
 
@@ -581,8 +587,8 @@ proc transfer*(creep: Creep, structure: Creep, resource: ResourceType): int {.im
 proc build*(creep: Creep, site: ConstructionSite): int {.importcpp.}
 proc dismantle*(creep: Creep, structure: Structure): int {.discardable,importcpp.}
 proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
-proc attack*(creep: Creep, hostile: Creep | Structure): int {.importcpp.}
-proc rangedAttack*(creep: Creep, hostile: Creep): int {.importcpp.}
+proc attack*(creep: Creep, hostile: RoomObject): int {.importcpp.}
+proc rangedAttack*(creep: Creep, hostile: RoomObject): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc moveTo*(creep: Creep, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
 

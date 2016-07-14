@@ -10,12 +10,12 @@ import screeps
 type
   Roles* = enum
     Worker    # 0
-    Fighter   # 1
+    Defender   # 1
     Pirate    # 2
 
   Actions* = enum
     Idle      # 0
-    Charge    # 1
+    Charge    # 1 # also means defernders are pirates
     Build     # 2
     Upgrade   # 3
     Repair    # 4

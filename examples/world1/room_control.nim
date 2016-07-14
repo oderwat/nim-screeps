@@ -100,8 +100,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   else:
-    workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]
-    fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE]
+    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+    #workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]
+    fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, MOVE]
+    pirateBody = @[TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, MOVE]
 
   var needCreeps = 0
   #var intrudersDetected = false
@@ -111,21 +113,25 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   if spawns.len == 0:
     logH "Room has no (owned) spawns"
   else:
-    if clevel >= 2 and stats.fighters.len < 3 and stats.workers.len >= 10:
-      #log "need fighters (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
-      inc needCreeps
-      if room.energyAvailable >=  fightBody.calcEnergyCost:
-        for spawn in spawns:
-          let rm = CreepMemory(role: Fighter, refilling: true, action: Idle)
-          var name = spawn.createCreep(fightBody, nil, rm)
-          if name != "":
-            log "New Fighter", name, "is spawning"
-            dec needCreeps
-            break
-    elif stats.workers.len < 10:
-      #log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
-      inc needCreeps
-      if room.energyAvailable >=  workBody.calcEnergyCost:
+    let wantDefenders = if clevel >= 2: 3 else: 2
+    if stats.defenders.len < wantDefenders:
+      log "need defenders (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
+      needCreeps += wantDefenders - stats.defenders.len
+      if stats.workers.len >= 10:
+        if room.energyAvailable >= fightBody.calcEnergyCost:
+          for spawn in spawns:
+            let rm = CreepMemory(role: Defender, refilling: true, action: Idle)
+            var name = spawn.createCreep(fightBody, nil, rm)
+            if name != "":
+              log "New Defender", name, "is spawning"
+              dec needCreeps
+              break
+
+    let wantWorkers = 10
+    if stats.workers.len < wantWorkers:
+      log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      needCreeps += wantWorkers - stats.workers.len
+      if room.energyAvailable >= workBody.calcEnergyCost:
         for spawn in spawns:
           let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
           var name = spawn.createCreep(workBody, nil, rm)
@@ -134,10 +140,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             dec needCreeps
             break
     # we count pirates global (and currently spwan in any room we own)
-    elif clevel >= 3 and globalPirates.len < (if pirateTarget != NOROOM: 4 else: 2):
-      #log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
-      inc needCreeps
-      if room.energyAvailable >=  pirateBody.calcEnergyCost:
+    let wantPirates = if clevel >= 3: 4 else: 0
+    if globalPirates.len < wantPirates:
+      log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      needCreeps += wantPirates - globalPirates.len
+      if room.energyAvailable >= pirateBody.calcEnergyCost:
         for spawn in spawns:
           let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
           var name = spawn.createCreep(pirateBody, nil, rm)
@@ -146,18 +153,18 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
             dec needCreeps
             break
 
-  for spawn in spawns:
-    if spawn.spawning != nil:
-      let m = memory.creeps[spawn.spawning.name].CreepMemory
-      if m != nil:
-        #log "Spawning", $$m.role, spawn.spawning.remainingTime
-        discard
-      else:
-        logS "Missing memory for spawning creep", error
-      dec needCreeps
+    for spawn in spawns:
+      if spawn.spawning != nil:
+        let m = memory.creeps[spawn.spawning.name].CreepMemory
+        if m != nil:
+          #log "Spawning", $$m.role, spawn.spawning.remainingTime
+          discard
+        else:
+          logS "Missing memory for spawning creep", error
+        dec needCreeps
 
-  #if needCreeps > 0:
-  #  logS room.name & " needs " & needCreeps & " Creeps", info
+  if needCreeps > 0:
+    logS room.name & " needs " & needCreeps & " Creeps", info
 
   var csites = room.find(ConstructionSite)
   # Sort by smalles energy cost for finishing construction
@@ -207,9 +214,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   # charge handling
   var totalEnergyNeeded = energyNeededTotal(room)
 
-  let minChargers = if totalEnergyNeeded.len <= 3: 2 else: totalEnergyNeeded.len div 6
-  let maxChargers = if totalEnergyNeeded.len <= 3: 2 else: totalEnergyNeeded.len div 3
+  let minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
+  let maxChargers = if totalEnergyNeeded.len <= 3: 3 else: totalEnergyNeeded.len div 2
 
+  log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
   #logS "needEnergy " & needEnergy.len, debug
   if totalEnergyNeeded.len > 0 and stats.charging.len < maxChargers: # never less than 2
     # prioritized answers

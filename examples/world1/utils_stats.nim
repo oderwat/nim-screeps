@@ -10,7 +10,7 @@ import types
 type
   Stats* = ref object
     workers*: seq[Creep]
-    fighters*: seq[Creep]
+    defenders*: seq[Creep]
     pirates*: seq[Creep]
     charging*: seq[Creep]
     building*: seq[Creep]
@@ -41,8 +41,8 @@ proc stats*(creeps: seq[Creep]): Stats =
       if cm.refilling:
         result.refilling.add creep
 
-    elif cm.role == Fighter:
-      result.fighters.add creep
+    elif cm.role == Defender:
+      result.defenders.add creep
 
     elif cm.role == Pirate:
       result.pirates.add creep
@@ -79,7 +79,7 @@ proc short*(action: Actions): cstring =
 
 proc `$$`*(role: Roles): cstring =
   if role == Worker: "worker".cstring
-  elif role == Fighter: "fighter".cstring
+  elif role == Defender: "defender".cstring
   elif role == Pirate: "pirate".cstring
   else: "unknown".cstring
 
@@ -114,7 +114,7 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
 
 proc log*(stats: Stats, globalPirates: seq[Creep]) =
   logS "workers: " & stats.workers.len & " / " &
-    "fighters: " & stats.fighters.len & " / " &
+    "defenders: " & stats.defenders.len & " / " &
     "pirates: " & stats.pirates.len & " (" & globalPirates.len & ") / " &
     "charging: " & stats.charging.len & " / " &
     "building: " & stats.building.len & " / " &

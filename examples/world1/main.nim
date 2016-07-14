@@ -25,7 +25,7 @@ when not declared(piratetarget):
 import room_control
 
 import role_worker
-import role_fighter
+import role_defender
 import role_pirate
 
 #const compiletime = staticExec("date +'%Y-%m-%d %H:%M:%S'")
@@ -106,14 +106,21 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if creep.ticksToLive < minTicks:
       minTicks = creep.ticksToLive
 
-    let cm = creep.memory.CreepMemory
+    var cm = creep.memory.CreepMemory
+    if pirateTarget != NOROOM:
+      if cm.role == Defender:
+        cm.action = Charge
+        cm.role = Pirate
+    elif cm.role == Pirate and cm.action == Charge:
+        cm.role = Defender # going home
+
     case cm.role:
       of Worker:
         creep.roleWorker
         #creep.say actionNames[cm.action.int].cstring
-      of Fighter:
-        creep.roleFighter
-        #creep.say "Fighter"
+      of Defender:
+        creep.roleDefender
+        #creep.say "Defender"
       of Pirate:
         creep.rolePirate pirateTarget
         #creep.say "Hoho!"

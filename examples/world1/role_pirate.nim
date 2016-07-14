@@ -41,12 +41,23 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
 
     if closestStruct == nil:
       #echo "nothing to attack, going home"
-      creep.moveTo(game.flags.Flag1)
+      creep.moveTo(game.flags.?Flag1)
     else:
       #echo "attacking ", closestStruct.id
-      if creep.attack(closestStruct) != OK:
-        var ret = creep.moveTo(closestStruct)
-        log creep.name, "moves to attack (" & ret & ")"
+      var ranged = false
+      var melee = false
+      for b in creep.body:
+        if b.part == RANGED_ATTACK:
+          ranged = true
+        if b.part == ATTACK:
+          melee = true
+
+      if melee:
+        if creep.attack(closestStruct) != OK:
+          if ranged:
+            discard creep.rangedAttack(closestStruct) # while going there
+          var ret = creep.moveTo(closestStruct)
+          log creep.name, "moves to attack (" & ret & ")"
   else:
     if pirateTarget != "":
       #log "pirateTarget is ", pirateTarget
@@ -54,4 +65,4 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
       #log creep.name, "moving to target", rt
     else:
       #log "moving to flag"
-      creep.moveTo(game.flags.Flag1)
+      creep.moveTo(game.flags.?Flag1)

@@ -4,9 +4,12 @@
 import system except echo, log
 
 import screeps
+import types
 
-proc roleFighter*(creep: Creep) =
-  #var cm = creep.mem(CreepMemory)
+proc roleDefender*(creep: Creep) =
+  #var cm = creep.memory.CreepMemory
+  # changing role (just a hack now)
+  #cm.role = Pirate
 
   var hostiles = creep.room.findHostile(CREEP)
   #echo "Have ", hostiles.len, " hostiles"
@@ -25,4 +28,4 @@ proc roleFighter*(creep: Creep) =
       log creep.name, " moves to attack (", ret, ")"
 
   else:
-    creep.moveTo(game.flags.Flag1)
+    creep.moveTo(game.flags.?Flag1)
