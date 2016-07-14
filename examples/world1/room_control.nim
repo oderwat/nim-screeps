@@ -205,7 +205,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     if stats.building.len < 6: # never more than 6
 
       if stats.idle.len > 0:
-        changeActionToClosest(stats, Charge, Build, csites)
+        changeActionToClosest(stats, Idle, Build, csites)
 
       elif stats.upgrading.len > 2:
         changeActionToClosest(stats, Upgrade, Build, csites)
