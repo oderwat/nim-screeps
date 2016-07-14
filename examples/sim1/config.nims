@@ -1,5 +1,8 @@
 import ospaths
 
+if fileExists(thisDir() / "../../src/screeps.nim"):
+  switch("path",thisDir() / "../../src")
+
 task build, "build":
   setCommand("js")
   --d:nodejs

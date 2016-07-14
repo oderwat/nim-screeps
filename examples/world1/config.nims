@@ -2,6 +2,7 @@
 # run nim build --hint[conf]:off main.nim
 import ospaths
 
+
 --d:logext # we use extened logging
 
 hint("processing", off)
@@ -10,6 +11,8 @@ hint("successx", on)
 #hint("conf", off)
 #hint("path", off)
 
+if fileExists(thisDir() / "../../src/screeps.nim"):
+  switch("path",thisDir() / "../../src")
 
 task build, "build":
   setCommand("js")

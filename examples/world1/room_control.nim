@@ -233,10 +233,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
 
-    elif (needCreeps > 0 and stats.upgrading.len > 0) or stats.charging.len < minChargers:
+    if (needCreeps > 0 and stats.upgrading.len > 0) or stats.charging.len < minChargers:
       changeActionToClosest(stats, Upgrade, Charge, needEnergy)
 
-    elif (stats.building.len > 0 and stats.charging.len < minChargers) or stats.building.len > 3:
+    if (stats.building.len > 0 and stats.charging.len < minChargers) or stats.building.len > 3:
       changeActionToClosest(stats, Build, Charge, needEnergy)
 
   if clevel >= 2:
