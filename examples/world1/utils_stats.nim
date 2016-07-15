@@ -102,15 +102,16 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     dst = actionToSeq(stats, dstAction)
 
   for idx, creep in src:
-    var m = creep.memory.CreepMemory
-    m.action = dstAction
-    dst.add creep
-    src.del idx
     var closest = creep.pos.findClosestByPath(targets)
-    if m.targetId != closest.id or true:
-      creep.say dstAction.short & closest.pos.at
-      m.targetId = closest.id
-    break
+    if closest != nil:
+      var m = creep.memory.CreepMemory
+      m.action = dstAction
+      dst.add creep
+      src.del idx
+      if m.targetId != closest.id:
+        creep.say dstAction.short & closest.pos.at
+        m.targetId = closest.id
+      break
 
 proc log*(stats: Stats, globalPirates: seq[Creep]) =
   logS "workers: " & stats.workers.len & " / " &
