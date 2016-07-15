@@ -1,4 +1,17 @@
+# nop
+# run nim build --hint[conf]:off main.nim
 import ospaths
+
+# deploy location
+let deployDir = thisDir() / "../../deploy/sim1"
+
+--d:logext # we use extened logging
+
+hint("processing", off)
+hint("successx", on)
+
+#hint("conf", off)
+#hint("path", off)
 
 if fileExists(thisDir() / "../../src/screeps.nim"):
   switch("path",thisDir() / "../../src")
@@ -26,4 +39,5 @@ task build, "build":
   if release:
     --opt:speed
 
-  switch("o",thisDir() / "../../deploy/sim1/main.js")
+  mkdir(deployDir)
+  switch("o", deployDir / "main.js")

@@ -2,6 +2,8 @@
 # run nim build --hint[conf]:off main.nim
 import ospaths
 
+# deploy location
+let deployDir = thisDir() / "../../deploy/world1"
 
 --d:logext # we use extened logging
 
@@ -37,4 +39,5 @@ task build, "build":
   if release:
     --opt:speed
 
-  switch("o",thisDir() / "../../deploy/world1/main.js")
+  mkdir(deployDir)
+  switch("o", deployDir / "main.js")
