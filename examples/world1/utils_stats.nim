@@ -12,6 +12,7 @@ type
     workers*: seq[Creep]
     defenders*: seq[Creep]
     pirates*: seq[Creep]
+    claimers*: seq[Creep]
     charging*: seq[Creep]
     building*: seq[Creep]
     upgrading*: seq[Creep]
@@ -43,6 +44,9 @@ proc stats*(creeps: seq[Creep]): Stats =
 
     elif cm.role == Defender:
       result.defenders.add creep
+
+    elif cm.role == Claimer:
+      result.claimers.add creep
 
     elif cm.role == Pirate:
       result.pirates.add creep
@@ -81,6 +85,7 @@ proc `$$`*(role: Roles): cstring =
   if role == Worker: "worker".cstring
   elif role == Defender: "defender".cstring
   elif role == Pirate: "pirate".cstring
+  elif role == Claimer: "claimer".cstring
   else: "unknown".cstring
 
 proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
@@ -113,7 +118,7 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
         m.targetId = closest.id
       break
 
-proc log*(stats: Stats, globalPirates: seq[Creep]) =
+proc log*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
   logS "workers: " & stats.workers.len & " / " &
     "defenders: " & stats.defenders.len & " / " &
     "pirates: " & stats.pirates.len & " (" & globalPirates.len & ") / " &
@@ -123,4 +128,5 @@ proc log*(stats: Stats, globalPirates: seq[Creep]) =
     "repairing: " & stats.repairing.len & " / " &
     "idle: " & stats.idle.len & " / " &
     "refilling: " & stats.refilling.len & " / " &
+    "claiming: " & globalClaimers.len & ") / " &
     "error: " & stats.error.len, debug

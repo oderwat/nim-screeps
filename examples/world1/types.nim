@@ -9,11 +9,14 @@ import screeps
 
 type
   Roles* = enum
-    Worker    # 0
-    Defender  # 1
-    Pirate    # 2
-    Tank      # 3
-    Healer    # 4
+    Worker      # 0
+    Defender    # 1
+    Pirate      # 2
+    Claimer     # 3
+    Tank        # 4
+    Healer      # 5
+    Harvester   # 6
+    Transporter # 7
 
   Actions* = enum
     Idle      # 0
@@ -22,13 +25,14 @@ type
     Upgrade   # 3
     Repair    # 4
 
+
   CreepMemory* = ref object of MemoryEntry
     role*: Roles
     action*: Actions
-    refilling*: bool
     targetId*: cstring # Id of RoomObject
+    refilling*: bool
     sourceId*: cstring # which (harvest) source to use
-    slurpId*: cstring # where to slurp
+    slurpId*: cstring # where to slurp (floor or container)
 
   RoomMemory* = ref object of MemoryEntry
     war*: bool

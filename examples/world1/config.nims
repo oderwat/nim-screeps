@@ -7,6 +7,9 @@ let deployDir = thisDir() / "../../deploy/world1"
 
 --d:logext # we use extened logging
 
+--d:js # so nimsuggest has a clue that we build for js backend
+--d:nodejs
+
 hint("processing", off)
 hint("successx", on)
 
@@ -18,7 +21,6 @@ if fileExists(thisDir() / "../../src/screeps.nim"):
 
 task build, "build":
   setCommand("js")
-  --d:nodejs
 
   var quick = false
   var release = true

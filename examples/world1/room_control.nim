@@ -52,7 +52,7 @@ proc energyNeeded(room: Room): auto =
 
   return room.energyNeededTotal
 
-proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName) =
+proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName, globalClaimers: seq[Creep]) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
   #for k, v in exits:
@@ -65,7 +65,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
 
-  #log "Room Capacity:", room.energyAvailable, "/", room.energyCapacityAvailable
+  log "Room Capacity:", room.energyAvailable, "/", room.energyCapacityAvailable
 
   let sources = room.find(Source)
   let creeps = room.findMy(Creep)
@@ -84,6 +84,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   var workBody: seq[BodyPart]
   var fightBody: seq[BodyPart]
   var pirateBody: seq[BodyPart]
+  var claimBody: seq[BodyPart]
   var healerBody: seq[BodyPart]
   var tankBody: seq[BodyPart]
 
@@ -91,6 +92,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
   tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
   healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
+  claimBody = @[CLAIM, CLAIM, CLAIM, CLAIM, CLAIM, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
   if room.energyCapacityAvailable < 450 or stats.workers.len < 6:
@@ -153,9 +155,25 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
         if room.energyAvailable >= pirateBody.calcEnergyCost:
           for spawn in spawns:
             let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
-            var name = spawn.createCreep(pirateBody, nil, rm)
+            #var name = spawn.createCreep(pirateBody, nil, rm)
+            var name = spawn.createCreep(tankBody, nil, rm)
             if name != "":
               log "New Pirate", name, "is spawning"
+              dec needCreeps
+              break
+
+    # claimers (global)
+    let wantClaimers = 1
+    if globalClaimers.len < wantClaimers:
+      log "need claimer (" & claimBody.calcEnergyCost & " / " & room.energyAvailable & ")"
+      needCreeps += wantClaimers - globalClaimers.len
+      if stats.workers.len >= wantWorkers:
+        if room.energyAvailable >= claimBody.calcEnergyCost:
+          for spawn in spawns:
+            let rm = CreepMemory(role: Claimer, refilling: true, action: Idle)
+            var name = spawn.createCreep(claimBody, nil, rm)
+            if name != "":
+              log "New Claimer", name, "is spawning"
               dec needCreeps
               break
 
@@ -271,7 +289,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName)
   if gm.logStats or gm.cmd == "show stats":
     if gm.cmd == "show stats":
       gm.cmd = nil
-    stats.log globalPirates
+    stats.log globalPirates, globalClaimers
 
   # check for dropped resources
   let drops = room.find(Resource)

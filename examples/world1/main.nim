@@ -27,6 +27,7 @@ import room_control
 import role_worker
 import role_defender
 import role_pirate
+import role_claimer
 import role_tank
 import role_healer
 
@@ -72,13 +73,16 @@ screepsLoop: # this conaints the main loop which is exported to the game
   if deads > 0:
     log "R.I.P.", deads
 
-  # we need to handle pirates global
+  # we need to handle pirates and claimers global
   var pirates: seq[Creep] = @[]
+  var claimers: seq[Creep] = @[]
   for creep in game.creeps:
     let cm = creep.memory.CreepMemory
     case cm.role:
       of Pirate:
         pirates.add creep
+      of Claimer:
+        claimers.add creep
       else: discard
 
   #
@@ -100,21 +104,21 @@ screepsLoop: # this conaints the main loop which is exported to the game
           cm.sourceId = sources[idx mod sources.len].id
           inc idx
     # the main room controler logic
-    roomControl(room, pirates, pirateTarget)
+    roomControl(room, pirates, pirateTarget, claimers)
 
   var minTicks = 999999
   # let the creeps do their jobs
   for creep in game.creeps:
     if creep.ticksToLive < minTicks:
       minTicks = creep.ticksToLive
-
     var cm = creep.memory.CreepMemory
-    if pirateTarget != NOROOM:
-      if cm.role == Defender:
-        cm.action = Charge
-        cm.role = Pirate
-    elif cm.role == Pirate and cm.action == Charge:
-        cm.role = Defender # going home
+
+    # if pirateTarget != NOROOM:
+    #   if cm.role == Defender:
+    #     cm.action = Charge
+    #     cm.role = Pirate
+    # elif cm.role == Pirate and cm.action == Charge:
+    #     cm.role = Defender # going home
 
     case cm.role:
       of Worker:
@@ -126,6 +130,9 @@ screepsLoop: # this conaints the main loop which is exported to the game
       of Pirate:
         creep.rolePirate pirateTarget
         #creep.say "Hoho!"
+      of Claimer:
+        creep.roleClaimer
+        #creep.say "JoinMe!"
       of Tank:
         creep.roleTank
         #creep.say "Tank"

@@ -40,8 +40,8 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
       closestStruct =  creep.pos.findClosestByPath(hostileStructs)
 
     if closestStruct == nil:
-      #echo "nothing to attack, going home"
-      creep.moveTo(game.flags.?Flag1)
+      #logH "nothing to attack, hanging arround"
+      creep.moveTo(game.flags.?Flag2)
     else:
       #echo "attacking ", closestStruct.id
       var ranged = false

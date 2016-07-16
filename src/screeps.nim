@@ -559,23 +559,9 @@ proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[Route
 
 proc newRoomPosition*(x, y: int, name: RoomName): RoomPosition {.importcpp: "new RoomPosition(#,#,#)".}
 
-#[ something like this would also work:
-
-proc findStructures* [T: ref object | object | JSAssoc](room: Room, opts: T): seq[Structure] =
-  result = @[]
-  {.emit: "`result` = `room`.find(FIND_STRUCTURES, `opts`);\n".}
-
-type SourceFilterOpts = ref object
-  filter: proc(s: Structure): bool
-var opts = SourceFilterOpts(filter: proc(struct: Structure): bool = struct.structureType == STRUCTURE_SPAWN)
-var targets = creep.room.findStructures(opts)
-
-]#
-
 proc say*(creep: Creep, txt: cstring) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc pickup*(creep: Creep, resource: Resource): int {.importcpp.}
-proc attackController*(creep: Creep, controller: StructureController): int {.importcpp.}
 proc suicide*(creep: Creep) {.importcpp.}
 proc drop*(creep: Creep, resource: ResourceType): int {.discardable,importcpp.}
 proc drop*(creep: Creep, resource: ResourceType, ammount: int): int {.discardable,importcpp.}
@@ -587,10 +573,16 @@ proc repair*(creep: Creep, structure: Structure): int {.importcpp.}
 proc attack*(creep: Creep, hostile: RoomObject): int {.importcpp.}
 proc rangedAttack*(creep: Creep, hostile: RoomObject): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
+proc attackController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
+proc claimController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc moveTo*(creep: Creep, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
+proc isNearTo*(pos: RoomPosition, x, y: int): bool {.importcpp, discardable.}
+proc isNearTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp, discardable.}
 
 proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
 proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
+proc heal*(src, dst: Creep): int {.discardable, importcpp.}
+proc rangedHeal*(src, dst: Creep): int {.discardable, importcpp.}
 proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 
 proc findPath*(room: Room, pos: RoomPosition, target: RoomPosition): seq[PathSteps] {.importcpp, discardable.}
