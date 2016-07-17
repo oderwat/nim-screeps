@@ -29,7 +29,9 @@ proc roleUplinker*(creep: Creep) =
       let ret = creep.withdraw(link, RESOURCE_TYPE_ENERGY)
       if ret == ERR_NOT_IN_RANGE:
         creep.moveTo(link)
-      elif ret != OK and ret != ERR_BUSY:
+      elif ret == ERR_NOT_ENOUGH_ENERGY:
+        creep.say "Wait?"
+      elif ret != OK:
         log creep.name, "is lost:", ret
     # should work in same tick
     if creep.carry.energy > 0:

@@ -130,9 +130,9 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   # hauling up to 300 energy should be enough
   haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
-  if room.energyCapacityAvailable >= 1100:
-    harvestBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
-    uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+  if room.energyCapacityAvailable >= 1150:
+    harvestBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
+    uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
   if room.energyCapacityAvailable < 450 or stats.workers.len < 4:

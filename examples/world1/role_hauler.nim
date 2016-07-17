@@ -30,6 +30,8 @@ proc roleHauler*(creep: Creep) =
       let ret = creep.withdraw(container, RESOURCE_TYPE_ENERGY)
       if ret == ERR_NOT_IN_RANGE:
         creep.moveTo(container)
+      elif ret == ERR_NOT_ENOUGH_ENERGY:
+        creep.say "Wait?"
       elif ret != OK and ret != ERR_BUSY:
         log creep.name, "is lost:", ret
 
