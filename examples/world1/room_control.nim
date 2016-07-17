@@ -13,10 +13,6 @@ import handle_link
 
 proc energyNeededTotal(room: Room): auto =
   result = room.find(Structure) do (struct: Structure) -> bool:
-    #if struct.structureType == STRUCTURE_TYPE_SPAWN:
-    #  let spawn = struct.StructureSpawn
-    #  result = spawn.energy < spawn.energyCapacity
-
     if struct.structureType == STRUCTURE_TYPE_EXTENSION:
       let extension = struct.StructureExtension
       result = extension.energy < extension.energyCapacity
@@ -24,10 +20,6 @@ proc energyNeededTotal(room: Room): auto =
     elif struct.structureType == STRUCTURE_TYPE_TOWER:
       let tower = struct.StructureTower
       result = tower.energy < tower.energyCapacity
-
-    #elif struct.structureType == STRUCTURE_TYPE_STORAGE:
-    #  let tower = struct.StructureStorage
-    #  result = tower.energy < tower.energyCapacity
 
     else: result = false
 
@@ -139,6 +131,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
   if room.energyCapacityAvailable >= 1100:
+    harvestBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
     uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
@@ -162,9 +155,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   let wantWorkers = if stats.uplinkers.len > 0: 6 else: 10
   let wantDefenders = if clevel >= 2: 3 else: 2
   let wantPirates = if clevel >= 3: 2 else: 0
-  let wantClaimers = 0
   let wantHaulers = containers.len  # seems to be enough
-  let wantUplinkers = 1 # seems to be enough
+  let wantUplinkers = if links.len > 0: 1 else: 0 # seems to be enough
+  let wantHarvesters = if clevel >= 3: sources.len else: 0
+  let wantClaimers = if clevel >= 6: 1 else: 0
 
   # charge handling
   var minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
@@ -199,8 +193,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     mySpawn Claimer, claimBody, needCreeps
 
   # as many as sources available
-  if stats.harvesters.len < sources.len:
-    needCreeps += sources.len - stats.harvesters.len
+  if stats.harvesters.len < wantHarvesters:
+    needCreeps += wantHarvesters - stats.harvesters.len
     mySpawn Harvester, harvestBody, needCreeps
 
   if stats.haulers.len < wantHaulers:

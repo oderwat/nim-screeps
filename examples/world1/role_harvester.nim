@@ -68,5 +68,5 @@ proc roleHarvester*(creep: Creep) =
           creep.moveTo(target)
         elif ret == ERR_FULL:
           logS "Container full!", error
-        else:
+        elif ret != OK:
           logS "Container problem: " & ret, error
