@@ -7,6 +7,9 @@ let deployDir = thisDir() / "../../deploy/sim1"
 
 --d:logext # we use extened logging
 
+--d:js # so nimsuggest has a clue that we build for js backend
+--d:nodejs
+
 hint("processing", off)
 hint("successx", on)
 

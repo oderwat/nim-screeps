@@ -9,6 +9,7 @@ import utils_stats
 
 import handle_repairs
 import handle_tower
+import handle_link
 
 proc energyNeededTotal(room: Room): auto =
   result = room.find(Structure) do (struct: Structure) -> bool:
@@ -52,13 +53,29 @@ proc energyNeeded(room: Room): auto =
 
   return room.energyNeededTotal
 
+template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
+  let roleName = ($newRole).cstring
+  log "need " & roleName & " (" & body.calcEnergyCost & " / " & room.energyAvailable & ")"
+  if room.energyAvailable >= body.calcEnergyCost:
+      for spawn in spawns:
+        let rm = CreepMemory(role: newRole, refilling: true, action: Idle)
+        var name = spawn.createCreep(body, nil, rm)
+        if name != "":
+          log "New", roleName, name, "is spawning"
+          dec needCreeps
+          break
+
 proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName, globalClaimers: seq[Creep]) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
   #for k, v in exits:
   #  echo "Exit: ", k, " > ", v
 
-  #var rm = room.memory.RoomMemory
+  var rm = room.memory.RoomMemory
+  if rm.sourceContainers == nil:
+    rm.sourceContainers = @[]
+  if rm.sourceLinks == nil:
+    rm.sourceLinks = @[]
   #rm.war = true
   #let war = true
 
@@ -71,6 +88,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   let creeps = room.findMy(Creep)
 
   var stats = creeps.stats()
+
+  room.memory.RoomMemory.stats = stats
 
   var idx = 0
   for creep in creeps:
@@ -87,12 +106,19 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var claimBody: seq[BodyPart]
   var healerBody: seq[BodyPart]
   var tankBody: seq[BodyPart]
+  var harvestBody: seq[BodyPart]
+  var haulBody: seq[BodyPart]
+  var uplinkBody: seq[BodyPart]
 
   # just for fun :)
   pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
   tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
   healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
   claimBody = @[CLAIM, CLAIM, CLAIM, CLAIM, CLAIM, MOVE]
+
+  harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+  haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
   if room.energyCapacityAvailable < 450 or stats.workers.len < 6:
@@ -106,12 +132,17 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   else:
-    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+    workBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY,
+      CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
     #workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]
     fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, MOVE]
     pirateBody = @[TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, MOVE]
 
   var needCreeps = 0
+  var maxUpgraders = 8
+  var minUpgraders = 2
+  if stats.uplinkers.len > 0:
+    maxUpgraders = 0
   #var intrudersDetected = false
 
   # counting of needed creeps is not yet really ok but better than before
@@ -119,63 +150,48 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   if spawns.len == 0:
     logH "Room has no (owned) spawns"
   else:
-    let wantWorkers = 10
+    let wantWorkers = if stats.uplinkers.len > 0: 6 else: 10
     if stats.workers.len < wantWorkers:
-      log "need workers (" & workBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       needCreeps += wantWorkers - stats.workers.len
-      if room.energyAvailable >= workBody.calcEnergyCost:
-        for spawn in spawns:
-          let rm = CreepMemory(role: Worker, refilling: true, action: Idle)
-          var name = spawn.createCreep(workBody, nil, rm)
-          if name != "":
-            log "New Worker", name, "is spawning"
-            dec needCreeps
-            break
+      mySpawn Worker, workBody, needCreeps
 
     let wantDefenders = if clevel >= 2: 3 else: 2
     if stats.defenders.len < wantDefenders:
-      log "need defenders (" & fightBody.calcEnergyCost, "/", room.energyAvailable & ")"
       needCreeps += wantDefenders - stats.defenders.len
       if stats.workers.len >= wantWorkers:
-        if room.energyAvailable >= fightBody.calcEnergyCost:
-          for spawn in spawns:
-            let rm = CreepMemory(role: Defender, refilling: true, action: Idle)
-            var name = spawn.createCreep(fightBody, nil, rm)
-            if name != "":
-              log "New Defender", name, "is spawning"
-              dec needCreeps
-              break
+        mySpawn Defender, fightBody, needCreeps
 
     # we count pirates global (and currently spwan in any room we own)
-    let wantPirates = if clevel >= 3: 4 else: 0
+    let wantPirates = if clevel >= 3: 2 else: 0
     if globalPirates.len < wantPirates:
-      log "need pirates (" & fightBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       needCreeps += wantPirates - globalPirates.len
       if stats.workers.len >= wantWorkers:
-        if room.energyAvailable >= pirateBody.calcEnergyCost:
-          for spawn in spawns:
-            let rm = CreepMemory(role: Pirate, refilling: true, action: Idle)
-            #var name = spawn.createCreep(pirateBody, nil, rm)
-            var name = spawn.createCreep(tankBody, nil, rm)
-            if name != "":
-              log "New Pirate", name, "is spawning"
-              dec needCreeps
-              break
+        mySpawn Pirate, tankBody, needCreeps
 
     # claimers (global)
-    let wantClaimers = 1
+    let wantClaimers = 0
     if globalClaimers.len < wantClaimers:
-      log "need claimer (" & claimBody.calcEnergyCost & " / " & room.energyAvailable & ")"
       needCreeps += wantClaimers - globalClaimers.len
-      if stats.workers.len >= wantWorkers:
-        if room.energyAvailable >= claimBody.calcEnergyCost:
-          for spawn in spawns:
-            let rm = CreepMemory(role: Claimer, refilling: true, action: Idle)
-            var name = spawn.createCreep(claimBody, nil, rm)
-            if name != "":
-              log "New Claimer", name, "is spawning"
-              dec needCreeps
-              break
+      mySpawn Claimer, claimBody, needCreeps
+
+    let sources = room.find(Source)
+
+    if stats.harvesters.len < sources.len:
+      needCreeps += sources.len - stats.harvesters.len
+      mySpawn Harvester, harvestBody, needCreeps
+
+    let containers = room.find(StructureContainer) do (structure: Structure) -> bool:
+      structure.structureType == STRUCTURE_TYPE_CONTAINER
+
+    let wantHaulers = containers.len  # seems to be enough
+    if stats.haulers.len < wantHaulers:
+      needCreeps += wantHaulers - stats.haulers.len
+      mySpawn Hauler, haulBody, needCreeps
+
+    let wantUplinkers = 1 # seems to be enough
+    if stats.uplinkers.len < wantUplinkers:
+      needCreeps += sources.len - stats.harvesters.len
+      mySpawn Uplinker, uplinkBody, needCreeps
 
     for spawn in spawns:
       if spawn.spawning != nil:
@@ -209,7 +225,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
   if csites.len > 0:
     # we need at least one builder in this room
-    log "having", csites.len, "construction sites"
+    # log "having", csites.len, "construction sites"
     #for site in csites:
     #  echo site.id, " ", site.progressTotal - site.progress
 
@@ -217,15 +233,15 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     if csites.len > 2:
       csites = csites[0..2]
 
-    for site in csites:
-      log site.id, site.progressTotal - site.progress, site.structureType
+    # for site in csites:
+    #   log site.id, site.progressTotal - site.progress, site.structureType
 
     if stats.building.len < 6: # never more than 6
 
       if stats.idle.len > 0:
         changeActionToClosest(stats, Idle, Build, csites)
 
-      elif stats.upgrading.len > 2:
+      elif stats.upgrading.len > minUpgraders:
         changeActionToClosest(stats, Upgrade, Build, csites)
 
       elif stats.charging.len > 4:
@@ -238,8 +254,12 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   # charge handling
   var totalEnergyNeeded = energyNeededTotal(room)
 
-  let minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
-  let maxChargers = if totalEnergyNeeded.len <= 3: 3 else: totalEnergyNeeded.len div 2
+  var minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
+  var maxChargers = if totalEnergyNeeded.len <= 3: 3 else: totalEnergyNeeded.len div 2
+
+  if stats.uplinkers.len > 0:
+    minChargers = totalEnergyNeeded.len
+    maxChargers = totalEnergyNeeded.len
 
   log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
   #logS "needEnergy " & needEnergy.len, debug
@@ -261,25 +281,38 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     handleRepairs(room, creeps, stats, needCreeps)
 
   # if we have idle creeps let them upgrade
-  if stats.idle.len > 0:
+  if stats.idle.len > 0 and stats.upgrading.len < maxUpgraders:
     changeAction(stats, Idle, Upgrade)
 
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
-    stats.charging.len > minChargers:
+    stats.charging.len > minChargers and stats.upgrading.len < minUpgraders:
       changeAction(stats, Charge, Upgrade)
+
+  if stats.upgrading.len > maxUpgraders:
+    changeAction(stats, Upgrade, Idle)
+
+  if stats.charging.len > maxChargers:
+    changeAction(stats, Charge, Idle)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name
   #  creep.mem(CreepMemory).role == Worker
 
   # Handle towers if available
-  var towers = room.find(StructureTower) do(a: StructureTower) -> bool:
+  var towers = room.find(StructureTower) do(a: Structure) -> bool:
     a.structureType == STRUCTURE_TYPE_TOWER
 
   #logS "have " & towers.len & " towers", info
   for tower in towers:
     handleTower(tower)
+
+  var links = room.find(StructureLink) do(a: Structure) -> bool:
+    a.structureType == STRUCTURE_TYPE_LINK
+
+  #logS "have " & towers.len & " towers", info
+  for link in links:
+    handleLink(link)
 
   var gm = memory.GameMemory
   if  gm.cmd == "toggle stats":

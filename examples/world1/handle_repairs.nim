@@ -69,4 +69,4 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
           log "no closest for", creep.name, "?"
           creep.say "NoWay!"
           m.action = Idle
-          m.targetId = nil
+          m.targetId = nil.ObjId

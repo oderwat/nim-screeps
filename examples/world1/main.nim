@@ -28,6 +28,9 @@ import role_worker
 import role_defender
 import role_pirate
 import role_claimer
+import role_harvester
+import role_hauler
+import role_uplinker
 import role_tank
 import role_healer
 
@@ -133,6 +136,15 @@ screepsLoop: # this conaints the main loop which is exported to the game
       of Claimer:
         creep.roleClaimer
         #creep.say "JoinMe!"
+      of Harvester:
+        creep.roleHarvester
+        #creep.say "Schaffe!"
+      of Hauler:
+        creep.roleHauler
+        #creep.say "Brum!"
+      of Uplinker:
+        creep.roleUplinker
+        #creep.say "Schaffe!"
       of Tank:
         creep.roleTank
         #creep.say "Tank"

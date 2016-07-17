@@ -1,0 +1,35 @@
+# nop
+# run nim build --hint[conf]:off main.nim
+
+import system except echo, log
+
+import screeps
+import types
+
+proc roleUplinker*(creep: Creep) =
+  var cm = creep.memory.CreepMemory # convert
+
+  let controller = creep.room.controller
+  if controller == nil:
+    logS "No controller?", error
+    return
+
+  # initial setup for the creep target and source
+  if cm.sourceId == nil:
+    # maybe better keep a list of "destination" links
+    let source = controller.pos.findClosestByPath(StructureLink) do(structure: Structure) -> bool:
+      structure.structureType == STRUCTURE_TYPE_LINK
+
+    if source != nil:
+      cm.sourceId = source.id
+
+  if cm.sourceId != nil:
+    if creep.carry.energy == 0:
+      let link = game.getObjectById(cm.sourceId, StructureLink)
+      let ret = creep.withdraw(link, RESOURCE_TYPE_ENERGY)
+      if ret == ERR_NOT_IN_RANGE:
+        creep.moveTo(link)
+      elif ret != OK and ret != ERR_BUSY:
+        log creep.name, "is lost:", ret
+    else:
+      discard creep.upgradeController(creep.room.controller)

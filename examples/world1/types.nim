@@ -9,14 +9,15 @@ import screeps
 
 type
   Roles* = enum
-    Worker      # 0
-    Defender    # 1
-    Pirate      # 2
-    Claimer     # 3
-    Tank        # 4
-    Healer      # 5
-    Harvester   # 6
-    Transporter # 7
+    Worker      # 0 # Multi purpose Creeps for early room development
+    Defender    # 1 # Long Range defender to watch over the room
+    Pirate      # 2 # Just some fun
+    Claimer     # 3 # Attacks + Reservers + Claims a RoomController
+    Tank        # 4 #
+    Healer      # 5 #
+    Harvester   # 6 # harvests source and deploys in link or container
+    Uplinker    # 7 # uses link energy for upgrading
+    Hauler      # 8 # Transports energy from containers to storage
 
   Actions* = enum
     Idle      # 0
@@ -25,17 +26,34 @@ type
     Upgrade   # 3
     Repair    # 4
 
+  Stats* = ref object
+    workers*: seq[Creep]
+    defenders*: seq[Creep]
+    pirates*: seq[Creep]
+    claimers*: seq[Creep]
+    harvesters*: seq[Creep]
+    uplinkers*: seq[Creep]
+    haulers*: seq[Creep]
+    charging*: seq[Creep]
+    building*: seq[Creep]
+    upgrading*: seq[Creep]
+    repairing*: seq[Creep]
+    idle*: seq[Creep]
+    refilling*: seq[Creep]
+    error*: seq[Creep]
 
   CreepMemory* = ref object of MemoryEntry
     role*: Roles
     action*: Actions
-    targetId*: cstring # Id of RoomObject
+    targetId*: ObjId # Id of RoomObject
     refilling*: bool
-    sourceId*: cstring # which (harvest) source to use
-    slurpId*: cstring # where to slurp (floor or container)
+    sourceId*: ObjId # which (harvest) source to use
+    slurpId*: ObjId # where to slurp (floor or container)
 
   RoomMemory* = ref object of MemoryEntry
-    war*: bool
+    stats*: Stats
+    sourceLinks*: seq[ObjId]
+    sourceContainers*: seq[ObjId]
 
   GameMemory* = ref object of MemoryObj
     cmd*: cstring

@@ -73,6 +73,7 @@ type
   ModeType* = distinct cstring
   LookType* = distinct cstring
   RoomName* = distinct cstring
+  ObjId* = distinct cstring
 
   BodyObj* = object
     part* {.exportc: "type".}: BodyPart # same as below
@@ -188,7 +189,7 @@ type
   RoomObject* = ref RoomObjectObj
 
   ConstructionSiteObj* {.exportc.} = object of RoomObjectObj
-    id*: cstring
+    id*: ObjId
     my*: bool
     owner*: User
     progress*: int
@@ -204,7 +205,7 @@ type
     fatigue*: int
     hits*: int
     hitsMax*: int
-    id*: cstring
+    id*: ObjId
     memory*: MemoryEntry
     my*: bool
     name*: cstring
@@ -226,7 +227,7 @@ type
   # TODO: Nuke
 
   ResourceObj* {.exportc.} = object of RoomObjectObj
-    id*: cstring
+    id*: ObjId
     amount*: int
     resourceType*: ResourceType
 
@@ -235,7 +236,7 @@ type
   SourceObj* {.exportc.} =  object of RoomObjectObj
     energy*: int
     energyCapacity*: int
-    id*: cstring
+    id*: ObjId
     ticksToRegeneration*: int
 
   Source* = ref SourceObj
@@ -243,7 +244,7 @@ type
   StructureObj* {.exportc.} =  object of RoomObjectObj
     hits*: int
     hitsMax*: int
-    id*: cstring
+    id*: ObjId
     structureType*: StructureType
 
   Structure* = ref StructureObj
@@ -277,7 +278,12 @@ type
   # TODO: StructureExtractor
   # TODO: StructureKeeperLair
   # TODO: StructureLab
-  # TODO: StructureLink
+
+  StructureLinkObj* {.exportc.} = object of EnergizedStructureObj
+    cooldown*: int
+
+  StructureLink* = ref StructureLinkObj
+
   # TODO: StructureNuker
   # TODO: StructureObserver
   # TODO: StructurePowerBank
@@ -297,15 +303,21 @@ type
 
   StructureSpawn* = ref StructureSpawnObj
 
-  # TODO: StructureStorage
+  StructureStorageObj* {.exportc.} = object of StructureObj
+    store*: JSAssoc[ResourceType, int] # has always: RESOURCE_TYPE_ENERGY
+    storeCapacity*: int
+
+  StructureStorage* = ref StructureStorageObj
+
+
   # TODO: StructureTerminal
 
   StructureTowerObj* = object of EnergizedStructureObj
   StructureTower* = ref StructureTowerObj
 
   StructureContainerObj* = object of StructureObj
-    store: JSAssoc[ResourceType, int] # has always: RESOURCE_TYPE_ENERGY
-
+    store*: JSAssoc[ResourceType, int] # has always: RESOURCE_TYPE_ENERGY
+    storeCapacity*: int
 
   StructureContainer* = ref StructureContainerObj
 
@@ -362,6 +374,7 @@ type
     COLOR_GREY = 9
     COLOR_WHITE = 10
 
+converter objId*(a: ObjId): cstring {.importcpp: "#".}
 converter roomName*(a: RoomName): cstring {.importcpp: "#".}
 converter bodyPart*(a: BodyPart): cstring {.importcpp: "#".}
 converter structureType*(a: StructureType): cstring {.importcpp: "#".}
@@ -421,6 +434,8 @@ const STRUCTURE_TYPE_ROAD* = "road".StructureType
 const STRUCTURE_TYPE_RAMPART* = "rampart".StructureType
 const STRUCTURE_TYPE_CONTROLLER* = "controller".StructureType
 const STRUCTURE_TYPE_STORAGE* = "storage".StructureType
+const STRUCTURE_TYPE_CONTAINER* = "container".StructureType
+const STRUCTURE_TYPE_LINK* = "link".StructureType
 
 const RESOURCE_TYPE_ENERGY* = "energy".ResourceType
 
@@ -469,12 +484,12 @@ template energy*(carry: JSAssoc[ResourceType, int]): int =
 var game* {.noDecl, importc: "Game".}: Game
 var memory* {.noDecl, importc: "Memory".}: Memory
 
-proc getObjectById*[T](game: Game, id: cstring, what: typedesc[T]): T {.importcpp: "#.getObjectById(#)".}
+proc getObjectById*[T](game: Game, id: ObjId, what: typedesc[T]): T {.importcpp: "#.getObjectById(#)".}
 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
 
-proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T], filter: proc(s: T): bool): T =
+proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T], filter: proc(s: auto): bool): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`, { filter: `filter` });\n".}
 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T], opts: Options): T =
@@ -502,6 +517,7 @@ template typeToFindHostile*(what: typedesc): FindTargets =
 template typeToFindMy*(what: typedesc): FindTargets =
   when what is Creep: FIND_MY_CREEPS
   elif what is StructureSpawn: FIND_MY_SPAWNS
+  elif what is StructureContainer: {.error: "use Structure + Filter".}
   elif what is Structure: FIND_MY_STRUCTURES
   elif what is ConstructionSite: FIND_MY_CONSTRUCTION_SITES
   else: {.error: "impossible find".}
@@ -514,26 +530,38 @@ converter roomName*(rname: cstring | string): RoomName = rname.RoomName
 proc findClosestByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ");\n".}
 
-proc findClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
+proc findClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: auto): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFind(what) & ", { filter: `filter` });\n".}
 
 proc findClosestHostileByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ");\n".}
 
-proc findClosestHostileByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
+proc findClosestHostileByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: auto): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
 proc findMyClosestByRange*[T](pos: RoomPosition, what: typedesc[T]): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ");\n".}
 
-proc findMyClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: T): bool): T =
+proc findMyClosestByRange*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: auto): bool): T =
   {.emit: "`result` = `pos`.findClosestByRange(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
+
+proc findClosestByPath*[T](pos: RoomPosition, what: typedesc[T]): T =
+  {.emit: "`result` = `pos`.findClosestByPath(" & $typeToFind(what) & ");\n".}
+
+proc findClosestByPath*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: auto): bool): T =
+  {.emit: "`result` = `pos`.findClosestByPath(" & $typeToFind(what) & ", { filter: `filter` });\n".}
+
+proc findMyClosestByPath*[T](pos: RoomPosition, what: typedesc[T]): T =
+  {.emit: "`result` = `pos`.findClosestByPath(" & $typeToFindMy(what) & ");\n".}
+
+proc findMyClosestByPath*[T](pos: RoomPosition, what: typedesc[T], filter: proc(s: auto): bool): T =
+  {.emit: "`result` = `pos`.findClosestByPath(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
 
 proc find*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFind(what) & ");\n".}
 
-proc find*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
+proc find*[T](room: Room, what: typedesc[T], filter: proc(s: auto): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFind(what) & ", { filter: `filter` });\n".}
 
@@ -541,7 +569,7 @@ proc findMy*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ");\n".}
 
-proc findMy*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
+proc findMy*[T](room: Room, what: typedesc[T], filter: proc(s: auto): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindMy(what) & ", { filter: `filter` });\n".}
 
@@ -549,7 +577,7 @@ proc findHostile*[T](room: Room, what: typedesc[T]): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ");\n".}
 
-proc findHostile*[T](room: Room, what: typedesc[T], filter: proc(s: T): bool): seq[T] =
+proc findHostile*[T](room: Room, what: typedesc[T], filter: proc(s: auto): bool): seq[T] =
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
@@ -576,13 +604,16 @@ proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcp
 proc attackController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc claimController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc moveTo*(creep: Creep, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
-proc isNearTo*(pos: RoomPosition, x, y: int): bool {.importcpp, discardable.}
-proc isNearTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp, discardable.}
+proc heal*(src, dst: Creep): int {.discardable, importcpp.}
+proc rangedHeal*(src, dst: Creep): int {.discardable, importcpp.}
+proc withdraw*(creep: Creep, where: EnergizedStructure | StructureStorage | StructureContainer, what: ResourceType): int {.discardable,importcpp.}
+proc withdraw*(creep: Creep, where: EnergizedStructure | StructureStorage | StructureContainer, what: ResourceType, ammount: int): int {.discardable,importcpp.}
+
+proc transferEnergy*(src, dst: StructureLink): int {.discardable,importcpp.}
+proc transferEnergy*(src, dst: StructureLink, ammount: int): int {.discardable,importcpp.}
 
 proc repair*(tower: StructureTower, structure: Structure): int {.discardable, importcpp.}
 proc heal*(tower: StructureTower, creep: Creep): int {.discardable, importcpp.}
-proc heal*(src, dst: Creep): int {.discardable, importcpp.}
-proc rangedHeal*(src, dst: Creep): int {.discardable, importcpp.}
 proc attack*(tower: StructureTower, hostile: Creep): int {.discardable, importcpp.}
 
 proc findPath*(room: Room, pos: RoomPosition, target: RoomPosition): seq[PathSteps] {.importcpp, discardable.}
@@ -594,6 +625,8 @@ proc createFlag*(pos: RoomPosition): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors, col2: Colors): int {.importcpp, discardable.}
+proc isNearTo*(pos: RoomPosition, x, y: int): bool {.importcpp, discardable.}
+proc isNearTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp, discardable.}
 
 proc filterCreeps*(filter: proc(creep: Creep): bool): seq[Creep] =
   {.emit: "`result` = _.filter(Game.creeps, `filter`);\n".}

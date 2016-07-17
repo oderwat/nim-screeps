@@ -8,27 +8,27 @@ import types
 
 proc roleHarvester*(creep: Creep) =
   var cm = creep.memory.CreepMemory # convert
-
-  # so we can act on the same tick
   if creep.carry.energy == 0 and not cm.refilling:
-    # check if we want to continue or kill that creep
-    if creep.ticksToLive < 50:
-      creep.say "Oh No!"
-      logH creep.name & ": Oh No! (" & creep.ticksToLive & ")"
-
-    if creep.ticksToLive < 48:
-      creep.suicide
-      logH creep.name & " committed sucicide"
-      return
-
     cm.refilling = true
 
   if cm.refilling == true:
+
+    if cm.sourceId == nil:
+      let sources = creep.room.find(Source)
+      for source in sources:
+        let harvesters = creep.room.memory.RoomMemory.stats.harvesters
+        var freeSource = true
+        for harvester in harvesters:
+          if source.id == harvester.memory.CreepMemory.sourceId:
+            freeSource = false
+        if freeSource:
+          cm.sourceId = source.id
 
     if creep.carry.energy < creep.carryCapacity:
         let source = game.getObjectById(cm.sourceId, Source)
         let ret = creep.harvest(source)
         if ret == ERR_NOT_IN_RANGE:
+          logS "Harvester " & creep.name & " moves to source", debug
           creep.moveTo(source)
         elif ret != OK and ret != ERR_BUSY:
           creep.say "#?%!"
@@ -36,50 +36,37 @@ proc roleHarvester*(creep: Creep) =
 
     else:
       #echo creep.name, " is now full"
-      creep.say "Full"
+      #creep.say "Full"
       cm.refilling = false
   else:
     # harvesters always fill the nearest container (noting else)
     if cm.targetId == nil:
-      var target = creep.pos.find
-    if cm.action == Charge:
-      var target = game.getObjectById(cm.targetId, EnergizedStructure)
-      #echo "Charging: ", target.structureType, at target.pos
-      var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
-      if ret == ERR_NOT_IN_RANGE:
-        creep.moveTo(target)
+      var target = creep.pos.findClosestByPath(Structure) do(structure: Structure) -> bool:
+        structure.structureType == STRUCTURE_TYPE_CONTAINER or
+          structure.structureType == STRUCTURE_TYPE_LINK
+
+      if target != nil:
+        cm.targetId = target.id
+        var rm = target.room.memory.RoomMemory
+        # we automatically store what are source containers and links
+        if target.structureType == STRUCTURE_TYPE_CONTAINER:
+          rm.sourceContainers.add target.id
+        elif target.structureType == STRUCTURE_TYPE_LINK:
+          rm.sourceLinks.add target.id
       else:
-        creep.say($ret.int)
-        cm.action = Idle
+        logS "No container in reach?", error
 
-    elif cm.action == Build:
-      var target = game.getObjectById(cm.targetId, ConstructionSite)
-      if creep.build(target) != OK:
-        if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil
-          cm.action = Idle
-      elif target.progress == target.progressTotal:
-        cm.targetId = nil
-        cm.action = Idle
-
-    elif cm.action == Repair:
-      var target = game.getObjectById(cm.targetId, Structure)
-      if creep.repair(target) != OK:
-        if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil
-          cm.action = Idle
-      elif target.hits == target.hitsMax:
-        cm.targetId = nil
-        cm.action = Idle
-
-    elif cm.action == Upgrade:
-      if creep.upgradeController(creep.room.controller) != OK:
-        creep.moveTo(creep.room.controller)
-
-    #for target in targets:
-    #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id
-
-  # if there is only one tick left we drop our energy so others can pick it up
-  if creep.ticksToLive == 1:
-    creep.drop(RESOURCE_TYPE_ENERGY)
-    logH "dropped " & creep.carry.energy & " on death"
+    if cm.targetId != nil:
+      let target = game.getObjectById(cm.targetId, EnergizedStructure)
+      if target != nil:
+        var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
+        if ret == ERR_NOT_FOUND:
+          logS "Container gone?", error
+          cm.targetId = nil.ObjId
+        elif ret == ERR_NOT_IN_RANGE:
+          logS "Harvester moves "  & creep.name & " to target", debug
+          creep.moveTo(target)
+        elif ret == ERR_FULL:
+          logS "Container full!", error
+        else:
+          logS "Container problem: " & ret, error

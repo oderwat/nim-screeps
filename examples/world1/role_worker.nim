@@ -30,7 +30,7 @@ proc roleWorker*(creep: Creep) =
       if cm.slurpId != nil:
         let resource = game.getObjectById(cm.slurpId, Resource)
         if resource == nil:
-          cm.slurpId = nil
+          cm.slurpId = nil.ObjId
           cm.refilling = false
           creep.say "Gone?"
           log creep.name, "Gone?"
@@ -41,21 +41,34 @@ proc roleWorker*(creep: Creep) =
           elif ret == OK:
             creep.say "Slurped"
             log creep.name, "Slurped"
-            cm.slurpId = nil
+            cm.slurpId = nil.ObjId
             cm.refilling = false
           elif ret != OK and ret != ERR_BUSY:
             creep.say "Cough"
             log creep.name, "Cough", ret
-            cm.slurpId = nil
+            cm.slurpId = nil.ObjId
             cm.refilling = false
       else:
-        let source = game.getObjectById(cm.sourceId, Source)
-        let ret = creep.harvest(source)
-        if ret == ERR_NOT_IN_RANGE:
-          creep.moveTo(source)
-        elif ret != OK and ret != ERR_BUSY:
-          creep.say "#?%!"
-          log creep.name, "is lost:", ret
+        # find a storage... if it has energy go there
+        let storage = creep.pos.findMyClosestByPath(StructureStorage) do(structure: Structure) -> bool:
+          structure.structureType == STRUCTURE_TYPE_STORAGE
+
+        # we prefer storage energy over harvesting ourselfs
+        if storage != nil and storage.store[RESOURCE_TYPE_ENERGY] > 0:
+          let ret = creep.withdraw(storage, RESOURCE_TYPE_ENERGY)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(storage)
+          elif ret != OK and ret != ERR_BUSY:
+            creep.say "#?%!"
+            log creep.name, "is lost:", ret
+        else:
+          let source = game.getObjectById(cm.sourceId, Source)
+          let ret = creep.harvest(source)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(source)
+          elif ret != OK and ret != ERR_BUSY:
+            creep.say "#?%!"
+            log creep.name, "is lost:", ret
 
     else:
       #echo creep.name, " is now full"
@@ -79,20 +92,20 @@ proc roleWorker*(creep: Creep) =
       var target = game.getObjectById(cm.targetId, ConstructionSite)
       if creep.build(target) != OK:
         if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil
+          cm.targetId = nil.ObjId
           cm.action = Idle
       elif target.progress == target.progressTotal:
-        cm.targetId = nil
+        cm.targetId = nil.ObjId
         cm.action = Idle
 
     elif cm.action == Repair:
       var target = game.getObjectById(cm.targetId, Structure)
       if creep.repair(target) != OK:
         if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil
+          cm.targetId = nil.ObjId
           cm.action = Idle
       elif target.hits == target.hitsMax:
-        cm.targetId = nil
+        cm.targetId = nil.ObjId
         cm.action = Idle
 
     elif cm.action == Upgrade:
