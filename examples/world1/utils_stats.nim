@@ -128,9 +128,9 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
       break
 
   if srclen - 1 != src.len:
-    logS "CC error src " & src.len & " " & srclen
+    logS "CC error src " & src.len & " " & srclen & " " & $srcAction
   if dstlen + 1 != dst.len:
-    logS "CC error dst " & dst.len & " " & dstlen
+    logS "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
 
 
 proc log*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =

@@ -32,7 +32,9 @@ proc roleHauler*(creep: Creep) =
         creep.moveTo(container)
       elif ret != OK and ret != ERR_BUSY:
         log creep.name, "is lost:", ret
-    else:
+
+    # should work (move) in same tick
+    if creep.carry.energy > 0:
       let storage = game.getObjectById(cm.targetId, StructureStorage)
       let ret = creep.transfer(storage, RESOURCE_TYPE_ENERGY)
       if ret == ERR_NOT_IN_RANGE:

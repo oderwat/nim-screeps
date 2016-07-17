@@ -31,5 +31,6 @@ proc roleUplinker*(creep: Creep) =
         creep.moveTo(link)
       elif ret != OK and ret != ERR_BUSY:
         log creep.name, "is lost:", ret
-    else:
+    # should work in same tick
+    if creep.carry.energy > 0:
       discard creep.upgradeController(creep.room.controller)
