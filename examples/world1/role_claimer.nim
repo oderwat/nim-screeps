@@ -13,10 +13,11 @@ proc roleClaimer*(creep: Creep) =
   let controller = creep.room.controller
   if controller.my:
     discard creep.travel(claimRoom)
+
   else:
-    let ret = creep.attackController(controller)
+    let ret = creep.claimController(controller)
     if ret != OK:
       creep.moveTo(controller)
-      logS "attacked", debug
+      logS "claiming", debug
     else:
       logS "what now? " & $$ret, debug

@@ -63,11 +63,6 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   #for k, v in exits:
   #  echo "Exit: ", k, " > ", v
 
-  var spawns = room.findMy(StructureSpawn)
-  if spawns.len == 0:
-    logH "Room has no (owned) spawns"
-    return
-
   var rm = room.memory.RoomMemory
   if rm.sourceContainers == nil:
     rm.sourceContainers = @[]
@@ -75,6 +70,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     rm.sourceLinks = @[]
   #rm.war = true
   #let war = true
+
+  var spawns = room.findMy(StructureSpawn)
+  if spawns.len == 0:
+    logH "Room has no (owned) spawns"
 
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
@@ -97,6 +96,19 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   room.memory.RoomMemory.stats = stats
 
   let totalEnergyNeeded = energyNeededTotal(room)
+
+  let wantImigrants = 4
+  if room.energyCapacityAvailable == 0 and stats.workers.len < wantImigrants and csites.len > 0:
+    # need to send workers here
+    for creep in game.creeps:
+      var cm = creep.memory.CreepMemory
+      if cm.role == Worker:
+        cm.action = Build
+        cm.refilling = false
+        cm.targetId = csites[0].id
+        cm.sourceId = nil.ObjId
+        cm.slurpId = nil.ObjId
+        stats = creeps.stats()
 
   var idx = 0
   for creep in creeps:
@@ -121,7 +133,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, ATTACK]
   tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
   healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
-  claimBody = @[CLAIM, CLAIM, CLAIM, CLAIM, CLAIM, MOVE]
+  claimBody = @[CLAIM, MOVE]
 
   # bodies for 800 at least
   harvestBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
@@ -153,12 +165,13 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     pirateBody = @[TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, MOVE]
 
   let wantWorkers = if stats.uplinkers.len > 0: 6 else: 10
-  let wantDefenders = if clevel >= 2: 3 else: 2
-  let wantPirates = if clevel >= 3: 2 else: 0
+  let wantDefenders = if clevel >= 2: 1 else: 0
+  let wantPirates = if clevel >= 3: 0 else: 0
   let wantHaulers = containers.len  # seems to be enough
   let wantUplinkers = if links.len > 0: 1 else: 0 # seems to be enough
   let wantHarvesters = if clevel >= 3: sources.len else: 0
-  let wantClaimers = if clevel >= 6: 1 else: 0
+
+  let wantClaimers = 0 #if clevel >= 5: 1 else: 0
 
   # charge handling
   var minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
@@ -166,7 +179,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
   var needCreeps = 0
   var maxUpgraders = 8
-  var minUpgraders = 2
+  var minUpgraders = if spawns.len > 0: 2 else: 0
   if stats.uplinkers.len > 0:
     maxUpgraders = 0
   #var intrudersDetected = false
@@ -185,7 +198,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   if globalPirates.len < wantPirates:
     needCreeps += wantPirates - globalPirates.len
     if stats.workers.len >= wantWorkers:
-      mySpawn Pirate, tankBody, needCreeps
+      mySpawn Pirate, pirateBody, needCreeps
 
   # claimers (global)
   if globalClaimers.len < wantClaimers:

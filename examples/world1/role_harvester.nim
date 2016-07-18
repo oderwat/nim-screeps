@@ -30,6 +30,8 @@ proc roleHarvester*(creep: Creep) =
         if ret == ERR_NOT_IN_RANGE:
           logS "Harvester " & creep.name & " moves to source", debug
           creep.moveTo(source)
+        elif ret == ERR_NOT_ENOUGH_ENERGY:
+          creep.say "Empty?"
         elif ret != OK and ret != ERR_BUSY:
           creep.say "#?%!"
           log creep.name, "is lost:", ret

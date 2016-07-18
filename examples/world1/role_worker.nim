@@ -66,6 +66,12 @@ proc roleWorker*(creep: Creep) =
           let ret = creep.harvest(source)
           if ret == ERR_NOT_IN_RANGE:
             creep.moveTo(source)
+          elif ret == ERR_NOT_ENOUGH_ENERGY:
+            if creep.carry.energy > 0:
+              cm.refilling = false
+              creep.say "Anyway"
+            else:
+              creep.say "Empty?"
           elif ret != OK and ret != ERR_BUSY:
             creep.say "#?%!"
             log creep.name, "is lost:", ret
