@@ -79,12 +79,13 @@ proc roleWorker*(creep: Creep) =
               log creep.name, "is lost:", ret
 
         if useSource == UseSource.check:
-          # find a container... if it has energy go there
+          # find a container... if it has "enough" energy go there
           let container = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
-            structure.structureType == STRUCTURE_TYPE_CONTAINER
+            structure.structureType == STRUCTURE_TYPE_CONTAINER and
+              structure.StructureContainer.store[RESOURCE_TYPE_ENERGY] >= creep.carryCapacity
 
           # we prefer container energy over harvesting ourselfs
-          if container != nil and container.store[RESOURCE_TYPE_ENERGY] > 0:
+          if container != nil:
             useSource = UseSource.nope
             let ret = creep.withdraw(container, RESOURCE_TYPE_ENERGY)
             if ret == ERR_NOT_IN_RANGE:
