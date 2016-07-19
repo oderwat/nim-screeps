@@ -230,7 +230,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   # counting of needed creeps is not yet really ok but better than before
   if stats.workers.len < wantWorkers:
     needCreeps += wantWorkers - stats.workers.len
-    mySpawn Worker, workBody, needCreeps
+    if wantHarvesters - stats.harvesters.len <= 0:
+      mySpawn Worker, workBody, needCreeps
 
   if stats.defenders.len < wantDefenders:
     needCreeps += wantDefenders - stats.defenders.len

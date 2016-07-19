@@ -50,48 +50,63 @@ proc roleWorker*(creep: Creep) =
             cm.slurpId = nil.ObjId
             cm.refilling = false
       else:
-        # find a storage... if it has energy go there
-        let storage = creep.pos.findMyClosestByPath(StructureStorage) do(structure: Structure) -> bool:
-          # i added the link... not sure if that is cool
-          structure.structureType == STRUCTURE_TYPE_STORAGE or
-            structure.structureType == STRUCTURE_TYPE_LINK
+        type UseSource {.pure.} = enum
+          nope   # not needed, have better option
+          check  # not decided
+          always # and nothing else
+        var useSource = UseSource.check
 
-        # we prefer storage energy over containers or harvesting ourselfs
-        if storage != nil and storage.store[RESOURCE_TYPE_ENERGY] > 0:
-          let ret = creep.withdraw(storage, RESOURCE_TYPE_ENERGY)
-          if ret == ERR_NOT_IN_RANGE:
-            creep.moveTo(storage)
-          elif ret != OK and ret != ERR_BUSY:
-            creep.say "#?%!"
-            log creep.name, "is lost:", ret
-        else:
+        # specialized.. if we build a container we take energy from nearest source
+        if cm.action == Build:
+          var target = game.getObjectById(cm.targetId, ConstructionSite)
+          if target != nil and target.structureType == STRUCTURE_TYPE_CONTAINER:
+            cm.sourceId = target.pos.findClosestByPath(Source).id
+            useSource = UseSource.always
+
+        if useSource == UseSource.check:
+          # find a storage... if it has energy go there
+          let storage = creep.pos.findMyClosestByPath(StructureStorage) do(structure: Structure) -> bool:
+            structure.structureType == STRUCTURE_TYPE_STORAGE
+
+          # we prefer storage energy over containers or harvesting ourselfs
+          if storage != nil and storage.store[RESOURCE_TYPE_ENERGY] > 0:
+            useSource = UseSource.nope
+            let ret = creep.withdraw(storage, RESOURCE_TYPE_ENERGY)
+            if ret == ERR_NOT_IN_RANGE:
+              creep.moveTo(storage)
+            elif ret != OK and ret != ERR_BUSY:
+              creep.say "#?%!"
+              log creep.name, "is lost:", ret
+
+        if useSource == UseSource.check:
           # find a container... if it has energy go there
           let container = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
             structure.structureType == STRUCTURE_TYPE_CONTAINER
 
           # we prefer container energy over harvesting ourselfs
           if container != nil and container.store[RESOURCE_TYPE_ENERGY] > 0:
+            useSource = UseSource.nope
             let ret = creep.withdraw(container, RESOURCE_TYPE_ENERGY)
             if ret == ERR_NOT_IN_RANGE:
               creep.moveTo(container)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
               log creep.name, "is lost:", ret
-          else:
 
-            let source = game.getObjectById(cm.sourceId, Source)
-            let ret = creep.harvest(source)
-            if ret == ERR_NOT_IN_RANGE:
-              creep.moveTo(source)
-            elif ret == ERR_NOT_ENOUGH_ENERGY:
-              if creep.carry.energy > 0:
-                cm.refilling = false
-                creep.say "Anyway"
-              else:
-                creep.say "Empty?"
-            elif ret != OK and ret != ERR_BUSY:
-              creep.say "#?%!"
-              log creep.name, "is lost:", ret
+        if useSource != UseSource.nope:
+          let source = game.getObjectById(cm.sourceId, Source)
+          let ret = creep.harvest(source)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(source)
+          elif ret == ERR_NOT_ENOUGH_ENERGY:
+            if creep.carry.energy > 0:
+              cm.refilling = false
+              creep.say "Anyway"
+            else:
+              creep.say "Empty?"
+          elif ret != OK and ret != ERR_BUSY:
+            creep.say "#?%!"
+            log creep.name, "is lost:", ret
 
     else:
       #echo creep.name, " is now full"
