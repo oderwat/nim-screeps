@@ -217,8 +217,8 @@ type
 
   FlagObj* {.exportc.} =  object of RoomObjectObj
     name*: cstring
-    color*: cstring
-    secondaryColor*: cstring
+    color*: Colors
+    secondaryColor*: Colors
     memory*: pointer
 
   Flag* = ref FlagObj

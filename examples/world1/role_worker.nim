@@ -4,6 +4,7 @@
 import system except echo, log
 
 import screeps
+import screeps_utils
 import types
 
 proc roleWorker*(creep: Creep) =
@@ -51,9 +52,11 @@ proc roleWorker*(creep: Creep) =
       else:
         # find a storage... if it has energy go there
         let storage = creep.pos.findMyClosestByPath(StructureStorage) do(structure: Structure) -> bool:
-          structure.structureType == STRUCTURE_TYPE_STORAGE
+          # i added the link... not sure if that is cool
+          structure.structureType == STRUCTURE_TYPE_STORAGE or
+            structure.structureType == STRUCTURE_TYPE_LINK
 
-        # we prefer storage energy over harvesting ourselfs
+        # we prefer storage energy over containers or harvesting ourselfs
         if storage != nil and storage.store[RESOURCE_TYPE_ENERGY] > 0:
           let ret = creep.withdraw(storage, RESOURCE_TYPE_ENERGY)
           if ret == ERR_NOT_IN_RANGE:
@@ -62,26 +65,40 @@ proc roleWorker*(creep: Creep) =
             creep.say "#?%!"
             log creep.name, "is lost:", ret
         else:
-          let source = game.getObjectById(cm.sourceId, Source)
-          let ret = creep.harvest(source)
-          if ret == ERR_NOT_IN_RANGE:
-            creep.moveTo(source)
-          elif ret == ERR_NOT_ENOUGH_ENERGY:
-            if creep.carry.energy > 0:
-              cm.refilling = false
-              creep.say "Anyway"
-            else:
-              creep.say "Empty?"
-          elif ret != OK and ret != ERR_BUSY:
-            creep.say "#?%!"
-            log creep.name, "is lost:", ret
+          # find a container... if it has energy go there
+          let container = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
+            structure.structureType == STRUCTURE_TYPE_CONTAINER
+
+          # we prefer container energy over harvesting ourselfs
+          if container != nil and container.store[RESOURCE_TYPE_ENERGY] > 0:
+            let ret = creep.withdraw(container, RESOURCE_TYPE_ENERGY)
+            if ret == ERR_NOT_IN_RANGE:
+              creep.moveTo(container)
+            elif ret != OK and ret != ERR_BUSY:
+              creep.say "#?%!"
+              log creep.name, "is lost:", ret
+          else:
+
+            let source = game.getObjectById(cm.sourceId, Source)
+            let ret = creep.harvest(source)
+            if ret == ERR_NOT_IN_RANGE:
+              creep.moveTo(source)
+            elif ret == ERR_NOT_ENOUGH_ENERGY:
+              if creep.carry.energy > 0:
+                cm.refilling = false
+                creep.say "Anyway"
+              else:
+                creep.say "Empty?"
+            elif ret != OK and ret != ERR_BUSY:
+              creep.say "#?%!"
+              log creep.name, "is lost:", ret
 
     else:
       #echo creep.name, " is now full"
       creep.say "Full"
       cm.refilling = false
-  else:
 
+  if not cm.refilling:
     #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
     if cm.action == Charge:
@@ -96,13 +113,23 @@ proc roleWorker*(creep: Creep) =
 
     elif cm.action == Build:
       var target = game.getObjectById(cm.targetId, ConstructionSite)
-      if creep.build(target) != OK:
+      let ret = creep.build(target)
+      if ret == OK:
+        if target.progress == target.progressTotal:
+          creep.say "done"
+          cm.targetId = nil.ObjId
+          cm.action = Idle
+        logH "building"
+      elif ret == ERR_NOT_IN_RANGE:
+        logH "moving to site " & target.pos.at
+        creep.moveTo(target)
+        creep.say ">" & target.pos.at
+      else:
         if creep.moveTo(target) == ERR_INVALID_TARGET:
           cm.targetId = nil.ObjId
           cm.action = Idle
-      elif target.progress == target.progressTotal:
-        cm.targetId = nil.ObjId
-        cm.action = Idle
+        creep.say "Site?"
+        logH "building error: " & ret
 
     elif cm.action == Repair:
       var target = game.getObjectById(cm.targetId, Structure)

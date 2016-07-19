@@ -49,6 +49,7 @@ type
     refilling*: bool
     sourceId*: ObjId # which (harvest) source to use
     slurpId*: ObjId # where to slurp (floor or container)
+    imigrant*: bool # are we from a different rooms spawn?
 
   RoomMemory* = ref object of MemoryEntry
     stats*: Stats

@@ -13,6 +13,11 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
   var hostileStructs: seq[Structure]
   var closestStruct: Structure
   var closestCreep: Creep
+
+  if creep.hits < creep.hitsMax div 2:
+    creep.moveTo(game.flags.?Flag3)
+    return
+
   #log creep.name, " in ", creep.room.name
   #log "Have ", hostileCreeps.len, " hostile Creeps"
   if hostileCreeps.len > 0:
@@ -25,10 +30,10 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
       return
 
   if creep.room.name == pirateTarget:
-    # check if we have towers and a path to them
+    # check if we have a spawn and a path to them
     hostileStructs = creep.room.find(Structure) do (struct: Structure) -> bool:
-      struct.structureType == STRUCTURE_TYPE_TOWER
-    # and a path to the tower
+      struct.structureType == STRUCTURE_TYPE_SPAWN
+    # and a path to the spawn
     closestStruct =  creep.pos.findClosestByPath(hostileStructs)
 
     if closestStruct == nil:
@@ -46,18 +51,30 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
       #echo "attacking ", closestStruct.id
       var ranged = false
       var melee = false
+      var dismantle = false
       for b in creep.body:
         if b.part == RANGED_ATTACK:
           ranged = true
         if b.part == ATTACK:
           melee = true
+        if b.part == WORK:
+          dismantle = true
+
+      if dismantle:
+        if creep.dismantle(closestStruct) == OK:
+          return
 
       if melee:
-        if creep.attack(closestStruct) != OK:
-          if ranged:
-            discard creep.rangedAttack(closestStruct) # while going there
-          var ret = creep.moveTo(closestStruct)
-          log creep.name, "moves to attack (" & ret & ")"
+        if creep.attack(closestStruct) == OK:
+          return
+
+      if ranged:
+        if creep.rangedAttack(closestStruct) == OK:
+          return # while going there
+
+      var ret = creep.moveTo(closestStruct)
+      log creep.name, "moves to attack (" & ret & ")"
+
   else:
     if pirateTarget != "":
       #log "pirateTarget is ", pirateTarget

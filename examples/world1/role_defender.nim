@@ -28,4 +28,10 @@ proc roleDefender*(creep: Creep) =
       log creep.name, " moves to attack (", ret, ")"
 
   else:
-    creep.moveTo(game.flags.?Flag1)
+    for flag in game.flags:
+      if flag.room != creep.room:
+        continue
+
+      if flag.color == COLOR_PURPLE:
+        creep.moveTo(flag)
+        break
