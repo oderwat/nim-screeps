@@ -19,11 +19,12 @@ proc roleHarvester*(creep: Creep) =
       let near = source.pos.findClosestByPath(Structure) do(structure: Structure) -> bool:
         structure.structureType == STRUCTURE_TYPE_CONTAINER or
           structure.structureType == STRUCTURE_TYPE_LINK
-      if not source.pos.isNearTo(near): continue # no? check the next source
+      if not source.pos.inRangeTo(near,2): continue # no? check the next source
 
       let harvesters = creep.room.memory.RoomMemory.stats.harvesters
       var freeSource = true
       for harvester in harvesters:
+        log harvester.name, source.id
         if source.id == harvester.memory.CreepMemory.sourceId:
           freeSource = false
       if freeSource:
@@ -62,19 +63,22 @@ proc roleHarvester*(creep: Creep) =
     return
 
   if creep.carry.energy < creep.carryCapacity:
-      let source = game.getObjectById(cm.sourceId, Source)
-      let ret = creep.harvest(source)
-      if ret == ERR_NOT_IN_RANGE:
-        if target.structureType == STRUCTURE_TYPE_CONTAINER:
-          logS "Harvester " & creep.name & " moves onto container", debug
-        else:
+      # if your target is a container we want to sit on it!
+      if target.structureType == STRUCTURE_TYPE_CONTAINER and
+        not creep.pos.isEqualTo(target.pos):
+        logS "Harvester " & creep.name & " moves onto container", debug
+        creep.moveTo(target)
+      else:
+        let source = game.getObjectById(cm.sourceId, Source)
+        let ret = creep.harvest(source)
+        if ret == ERR_NOT_IN_RANGE:
           logS "Harvester " & creep.name & " moves to source", debug
-        creep.moveTo(source)
-      elif ret == ERR_NOT_ENOUGH_ENERGY:
-        creep.say "Empty?"
-      elif ret != OK and ret != ERR_BUSY:
-        creep.say "#?%!"
-        log creep.name, "is lost:", ret
+          creep.moveTo(source)
+        elif ret == ERR_NOT_ENOUGH_ENERGY:
+          creep.say "Empty?"
+        elif ret != OK and ret != ERR_BUSY:
+          creep.say "#?%!"
+          log creep.name, "is lost:", ret
 
   if creep.carry.energy > 0:
     var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)

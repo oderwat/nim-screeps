@@ -625,8 +625,12 @@ proc createFlag*(pos: RoomPosition): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors): int {.importcpp, discardable.}
 proc createFlag*(pos: RoomPosition, name: cstring, col1: Colors, col2: Colors): int {.importcpp, discardable.}
-proc isNearTo*(pos: RoomPosition, x, y: int): bool {.importcpp, discardable.}
-proc isNearTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp, discardable.}
+proc isNearTo*(pos: RoomPosition, x, y: int): bool {.importcpp.}
+proc isNearTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp.}
+proc inRangeTo*(pos: RoomPosition, x, y: int, distance: int): bool {.importcpp.}
+proc inRangeTo*(pos: RoomPosition, target: RoomPosition | RoomObject, distance: int): bool {.importcpp.}
+proc isEqualTo*(pos: RoomPosition, x, y: int): bool {.importcpp.}
+proc isEqualTo*(pos: RoomPosition, target: RoomPosition | RoomObject): bool {.importcpp.}
 
 proc filterCreeps*(filter: proc(creep: Creep): bool): seq[Creep] =
   {.emit: "`result` = _.filter(Game.creeps, `filter`);\n".}
