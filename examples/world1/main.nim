@@ -128,6 +128,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
         creep.roleWorker
         #creep.say actionNames[cm.action.int].cstring
       of Defender:
+        #creep.rolePirate pirateTarget
         creep.roleDefender
         #creep.say "Defender"
       of Pirate:

@@ -17,7 +17,7 @@ proc roleUplinker*(creep: Creep) =
   # initial setup for the creep target and source
   if cm.sourceId == nil:
     # maybe better keep a list of "destination" links
-    let source = controller.pos.findClosestByPath(StructureLink) do(structure: Structure) -> bool:
+    let source = controller.pos.findClosestByRange(StructureLink) do(structure: Structure) -> bool:
       structure.structureType == STRUCTURE_TYPE_LINK
 
     if source != nil:

@@ -21,6 +21,8 @@ proc stats*(creeps: seq[Creep]): Stats =
         result.upgrading.add creep
       elif cm.action == Repair:
         result.repairing.add creep
+      elif cm.action == Migrate:
+        result.migrating.add creep
       elif cm.action == Idle:
         result.idle.add creep
       else:
@@ -47,19 +49,13 @@ proc stats*(creeps: seq[Creep]): Stats =
       result.uplinkers.add creep
 
 proc actionToSeq*(stats: Stats, action: Actions): seq[Creep] =
-  if action == Idle:
-    result = stats.idle
-  elif action == Charge:
-    result = stats.charging
-  elif action == Repair:
-    result = stats.repairing
-  elif action == Build:
-    result = stats.building
-  elif action == Upgrade:
-    result = stats.upgrading
-  else:
-    logS "unsuported change action " & $action, error
-    return
+  case action:
+    of Idle: return stats.idle
+    of Charge: return stats.charging
+    of Repair: return stats.repairing
+    of Build: return stats.building
+    of Upgrade: return stats.upgrading
+    of Migrate: return stats.migrating
 
 proc short*(action: Actions): cstring =
   if action == Idle:
@@ -134,17 +130,18 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
 
 
 proc log*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
-  logS "workers: " & stats.workers.len & " " &
-    "defenders: " & stats.defenders.len & " " &
-    "pirates: " & stats.pirates.len & " (" & globalPirates.len & ") " &
-    "charging: " & stats.charging.len & " " &
-    "building: " & stats.building.len & " " &
-    "upgrading: " & stats.upgrading.len & " " &
-    "repairing: " & stats.repairing.len & " " &
-    "idle: " & stats.idle.len & " " &
-    "refilling: " & stats.refilling.len & " " &
-    "claiming: " & globalClaimers.len & " " &
-    "harvesting: " & stats.harvesters.len & " " &
-    "uplinking: " & stats.uplinkers.len & " " &
-    "hauling: " & stats.haulers.len & " " &
-    "error: " & stats.error.len, debug
+  logS "wrk: " & stats.workers.len & " " &
+    "def: " & stats.defenders.len & " " &
+    "pir: " & stats.pirates.len & " (" & globalPirates.len & ") " &
+    "chg: " & stats.charging.len & " " &
+    "bld: " & stats.building.len & " " &
+    "upg: " & stats.upgrading.len & " " &
+    "rep: " & stats.repairing.len & " " &
+    "idl: " & stats.idle.len & " " &
+    "ref: " & stats.refilling.len & " " &
+    "cla: " & globalClaimers.len & " " &
+    "hvs: " & stats.harvesters.len & " " &
+    "upl: " & stats.uplinkers.len & " " &
+    "hau: " & stats.haulers.len & " " &
+    "mig: " & stats.migrating.len & " " &
+    "err: " & stats.error.len, debug

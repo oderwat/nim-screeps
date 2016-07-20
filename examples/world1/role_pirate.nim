@@ -18,16 +18,35 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
     creep.moveTo(game.flags.?Flag3)
     return
 
+  let attackWalls = false
+  #let attackTargetId: ObjId = nil.ObjId
+
   #log creep.name, " in ", creep.room.name
   #log "Have ", hostileCreeps.len, " hostile Creeps"
   if hostileCreeps.len > 0:
     closestCreep = creep.pos.findClosestByPath(hostileCreeps)
     if closestCreep != nil:
-      if creep.attack(closestCreep) != OK:
+      log "closest is: ", closestCreep.id
+      var ranged = false
+      var melee = false
+      for b in creep.body:
+        if b.part == RANGED_ATTACK:
+          ranged = true
+        if b.part == ATTACK:
+          melee = true
+
+      if melee or ranged:
+        if melee:
+          if creep.attack(closestCreep) == OK:
+            return
+
+        if ranged:
+          if creep.rangedAttack(closestCreep) == OK:
+            return # while going there
+
         var ret = creep.moveTo(closestCreep)
-        discard ret
-        #echo creep.name, " moves to attack (", ret, ")"
-      return
+        log creep.name, "moves to attack (" & ret & ")"
+        return
 
   if creep.room.name == pirateTarget:
     # check if we have a spawn and a path to them
@@ -35,14 +54,28 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
       struct.structureType == STRUCTURE_TYPE_SPAWN
     # and a path to the spawn
     closestStruct =  creep.pos.findClosestByPath(hostileStructs)
+    #closestStruct = game.getObjectById("578edc78a423f04b5db0b5ad".ObjId, Structure)
 
     if closestStruct == nil:
       # find other structs
       hostileStructs = creep.room.find(Structure) do (struct: Structure) -> bool:
-        struct.structureType != STRUCTURE_TYPE_ROAD and struct.structureType != STRUCTURE_TYPE_CONTROLLER
+        struct.structureType != STRUCTURE_TYPE_ROAD and
+          struct.structureType != STRUCTURE_TYPE_CONTROLLER and
+          (if struct.structureType == STRUCTURE_TYPE_WALL: attackWalls else: true)
 
       #echo "Have ", hostileStructs.len, " hostile Structs"
       closestStruct =  creep.pos.findClosestByPath(hostileStructs)
+
+    if closestStruct == nil:
+      # find other structs (ranged)
+      hostileStructs = creep.room.find(Structure) do (struct: Structure) -> bool:
+        struct.structureType != STRUCTURE_TYPE_ROAD and
+          struct.structureType != STRUCTURE_TYPE_CONTROLLER and
+          (if struct.structureType == STRUCTURE_TYPE_WALL: attackWalls else: true)
+
+      #echo "Have ", hostileStructs.len, " hostile Structs"
+      closestStruct =  creep.pos.findClosestByRange(hostileStructs)
+      #closestStruct = game.getObjectById("578edc78a423f04b5db0b5ad".ObjId, Structure)
 
     if closestStruct == nil:
       #logH "nothing to attack, hanging arround"
@@ -78,8 +111,8 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
   else:
     if pirateTarget != "":
       #log "pirateTarget is ", pirateTarget
-      var rt = travel(creep, pirateTarget)
-      #log creep.name, "moving to target", rt
+      let rt = travel(creep, pirateTarget)
+      log creep.name, "moving to target", rt
     else:
       #log "moving to flag"
       creep.moveTo(game.flags.?Flag1)

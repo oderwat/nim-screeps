@@ -25,6 +25,7 @@ type
     Build     # 2
     Upgrade   # 3
     Repair    # 4
+    Migrate   # 5
 
   Stats* = ref object
     workers*: seq[Creep]
@@ -40,6 +41,7 @@ type
     repairing*: seq[Creep]
     idle*: seq[Creep]
     refilling*: seq[Creep]
+    migrating*: seq[Creep]
     error*: seq[Creep]
 
   CreepMemory* = ref object of MemoryEntry

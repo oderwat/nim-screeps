@@ -1,22 +1,27 @@
 # nop
 # run nim build --hint[conf]:off main.nim
 
-import system except echo, log
+import system except log
 
 import screeps
 import types
+import macros
 
 proc handleTower*(tower: StructureTower) =
     var closestHostile = tower.findClosestHostileByRange(Creep)
     if closestHostile != nil:
       tower.attack(closestHostile)
 
+    #log "Tower " & tower.energy
+
     if tower.energy > 0:
       var closestDamegedCreep = tower.findMyClosestByRange(Creep) do(creep: Creep) -> bool:
-        if creep.hits < creep.hitsMax:
-          tower.heal(creep)
+        creep.hits < creep.hitsMax
 
-    if tower.energy > tower.energyCapacity div 3:
+      if closestDamegedCreep != nil:
+        tower.heal(closestDamegedCreep)
+
+    if tower.energy > tower.energyCapacity div 3: # and tower.room.name != "W39N8":
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
         if structure.hits == structure.hitsMax:
           return false

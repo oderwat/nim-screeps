@@ -117,49 +117,69 @@ proc roleWorker*(creep: Creep) =
   if not cm.refilling:
     #var needEnergy = energyNeeded(creep)
     # need some kind of priority list here
-    if cm.action == Charge:
-      var target = game.getObjectById(cm.targetId, EnergizedStructure)
-      #echo "Charging: ", target.structureType, at target.pos
-      var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
-      if ret == ERR_NOT_IN_RANGE:
-        creep.moveTo(target)
-      else:
-        creep.say($ret.int)
-        cm.action = Idle
+    case cm.action:
+      of Idle:
+        discard # hanging around
 
-    elif cm.action == Build:
-      var target = game.getObjectById(cm.targetId, ConstructionSite)
-      let ret = creep.build(target)
-      if ret == OK:
-        if target.progress == target.progressTotal:
-          creep.say "done"
+      of Charge:
+        var target = game.getObjectById(cm.targetId, EnergizedStructure)
+        #echo "Charging: ", target.structureType, at target.pos
+        var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
+        if ret == ERR_NOT_IN_RANGE:
+          creep.moveTo(target)
+        else:
+          creep.say($ret.int)
+          cm.action = Idle
+
+      of Build:
+        var target = game.getObjectById(cm.targetId, ConstructionSite)
+        let ret = creep.build(target)
+        if ret == OK:
+          if target.progress == target.progressTotal:
+            creep.say "done"
+            cm.targetId = nil.ObjId
+            cm.action = Idle
+          logH "building"
+        elif ret == ERR_NOT_IN_RANGE:
+          logH "moving to site " & target.pos.at
+          creep.moveTo(target)
+          creep.say ">" & target.pos.at
+        else:
+          if creep.moveTo(target) == ERR_INVALID_TARGET:
+            cm.targetId = nil.ObjId
+            cm.action = Idle
+          creep.say "Site?"
+          logH "building error: " & ret
+
+      of Repair:
+        var target = game.getObjectById(cm.targetId, Structure)
+        if creep.repair(target) != OK:
+          if creep.moveTo(target) == ERR_INVALID_TARGET:
+            cm.targetId = nil.ObjId
+            cm.action = Idle
+        elif target.hits == target.hitsMax:
           cm.targetId = nil.ObjId
           cm.action = Idle
-        logH "building"
-      elif ret == ERR_NOT_IN_RANGE:
-        logH "moving to site " & target.pos.at
-        creep.moveTo(target)
-        creep.say ">" & target.pos.at
-      else:
-        if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil.ObjId
-          cm.action = Idle
-        creep.say "Site?"
-        logH "building error: " & ret
 
-    elif cm.action == Repair:
-      var target = game.getObjectById(cm.targetId, Structure)
-      if creep.repair(target) != OK:
-        if creep.moveTo(target) == ERR_INVALID_TARGET:
-          cm.targetId = nil.ObjId
-          cm.action = Idle
-      elif target.hits == target.hitsMax:
-        cm.targetId = nil.ObjId
-        cm.action = Idle
+      of Upgrade:
+        if creep.upgradeController(creep.room.controller) != OK:
+          creep.moveTo(creep.room.controller)
 
-    elif cm.action == Upgrade:
-      if creep.upgradeController(creep.room.controller) != OK:
-        creep.moveTo(creep.room.controller)
+      of Migrate:
+        let target = game.getObjectById(cm.targetId, Structure)
+        let ret = creep.moveTo(target)
+        if ret == OK:
+          logS creep.name & " is traveling to " & target.pos.roomName, info
+        elif ret != ERR_TIRED:
+          logS creep.name & " (traveling) error " & ret, info
+
+        if creep.room.name == target.pos.roomName:
+          cm.action = Idle # let the new room choose what to do
+          cm.refilling = false
+          cm.sourceId = nil.ObjId
+          cm.slurpId = nil.ObjId
+
+          logH "Reached target"
 
     #for target in targets:
     #  echo target.pos.x, " ", target.pos.y, " ", target.structureType, " ", target.id

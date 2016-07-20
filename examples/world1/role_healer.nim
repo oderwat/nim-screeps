@@ -26,3 +26,4 @@ proc roleHealer*(creep: Creep) =
     let target = creep.pos.findMyClosestByRange(Creep) do(creep: Creep) -> bool:
       let cm = creep.memory.CreepMemory
       cm.role == Pirate
+    discard target

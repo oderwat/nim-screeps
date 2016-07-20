@@ -7,7 +7,7 @@ import screeps
 import screeps_utils
 import types
 
-const claimRoom = "W39N8".RoomName
+const claimRoom = "W38N7".RoomName
 
 proc roleClaimer*(creep: Creep) =
   let controller = creep.room.controller
@@ -17,7 +17,9 @@ proc roleClaimer*(creep: Creep) =
   else:
     let ret = creep.claimController(controller)
     if ret != OK:
-      creep.moveTo(controller)
-      logS "claiming", debug
+      let ret = creep.reserveController(controller)
+      if ret != OK:
+        creep.moveTo(controller)
+        logS "claiming", debug
     else:
       logS "what now? " & $$ret, debug

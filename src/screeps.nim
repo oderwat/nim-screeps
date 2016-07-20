@@ -581,7 +581,7 @@ proc findHostile*[T](room: Room, what: typedesc[T], filter: proc(s: auto): bool)
   result = @[]
   {.emit: "`result` = `room`.find(" & $typeToFindHostile(what) & ", { filter: `filter` });\n".}
 
-proc find*[T](room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
+proc find*(room: Room, find: FindTargets): seq[RoomPosition] {.importcpp.}
 
 proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[RouteEntry] {.importcpp.}
 
@@ -603,7 +603,9 @@ proc rangedAttack*(creep: Creep, hostile: RoomObject): int {.importcpp.}
 proc upgradeController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc attackController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc claimController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
+proc reserveController*(creep: Creep, ctrl: StructureController): int {.importcpp.}
 proc moveTo*(creep: Creep, target: RoomPosition | RoomObject): int {.importcpp, discardable.}
+proc moveTo*(creep: Creep, x,y: int): int {.importcpp, discardable.}
 proc heal*(src, dst: Creep): int {.discardable, importcpp.}
 proc rangedHeal*(src, dst: Creep): int {.discardable, importcpp.}
 proc withdraw*(creep: Creep, where: EnergizedStructure | StructureStorage | StructureContainer, what: ResourceType): int {.discardable,importcpp.}

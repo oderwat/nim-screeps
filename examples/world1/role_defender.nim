@@ -12,6 +12,9 @@ proc roleDefender*(creep: Creep) =
   #cm.role = Pirate
 
   var hostiles = creep.room.findHostile(CREEP)
+  #var hostiles: seq[RoomObject] = @[]
+  #hostiles.add game.getObjectById("578edc78a423f04b5db0b5ad".ObjId, RoomObject)
+
   #echo "Have ", hostiles.len, " hostiles"
   if hostiles.len > 0:
     var closest = creep.pos.findClosestByPath(hostiles)

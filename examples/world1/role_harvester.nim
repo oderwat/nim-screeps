@@ -6,6 +6,7 @@ import system except echo, log
 import screeps
 import screeps_utils
 import types
+import math
 
 proc roleHarvester*(creep: Creep) =
   var cm = creep.memory.CreepMemory # convert
@@ -19,7 +20,7 @@ proc roleHarvester*(creep: Creep) =
       let near = source.pos.findClosestByPath(Structure) do(structure: Structure) -> bool:
         structure.structureType == STRUCTURE_TYPE_CONTAINER or
           structure.structureType == STRUCTURE_TYPE_LINK
-      if not source.pos.inRangeTo(near,2): continue # no? check the next source
+      if near != nil and not source.pos.inRangeTo(near,2): continue # no? check the next source
 
       let harvesters = creep.room.memory.RoomMemory.stats.harvesters
       var freeSource = true
@@ -52,7 +53,10 @@ proc roleHarvester*(creep: Creep) =
         elif target.structureType == STRUCTURE_TYPE_LINK:
           rm.sourceLinks.uniqueAdd target.id
       else:
-        logS creep.name & ": No container in reach?", error
+        logS creep.name & ": No container in reach? Roaming a bit!", error
+        let source = game.getObjectById(cm.sourceId, Source)
+        # we dance around the source so a build gets through to a construction site
+        creep.moveTo(source.pos.x + (game.time mod 5) - 2, source.pos.y + (game.time mod 5) - 2)
 
   let target = game.getObjectById(cm.targetId, EnergizedStructure)
   if target == nil:
