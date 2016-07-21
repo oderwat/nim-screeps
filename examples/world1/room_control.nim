@@ -57,7 +57,7 @@ template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
         let rm = CreepMemory(role: newRole, refilling: true, action: Idle)
         var name = spawn.createCreep(body, nil, rm)
         if name != "":
-          logS "New" & roleName & name & "is spawning"
+          log "New " & roleName & name & " is spawning"
           dec needCreeps
           break
 
@@ -139,7 +139,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
           cm.refilling = true
           cm.targetId = room.controller.id
           dec wantImigrants
-          logS creep.name & " is migrating"
+          log creep.name & " is migrating"
         elif cm.role == Worker:
           # any creep for now
           cm.action = Migrate
@@ -147,7 +147,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
           cm.refilling = true
           cm.imigrant = true
           dec wantImigrants
-          logS creep.name & " was hired"
+          log creep.name & " was hired"
 
       stats = creeps.stats()
 
@@ -275,7 +275,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   # claimers (global)
   if globalClaimers.len < wantClaimers:
     # if we need more than one we get one out if the oldest has only 100 ticks left
-    if globalClaimers.len == 0 or globalClaimers[0].ticksToLive < 250:
+    if globalClaimers.len == 0 or globalClaimers[0].ticksToLive < 150:
       needCreeps += wantClaimers - globalClaimers.len
       mySpawn Claimer, claimBody, needCreeps
 
@@ -294,11 +294,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
         #log "Spawning", $$m.role, spawn.spawning.remainingTime
         discard
       else:
-        logS "Missing memory for spawning creep", error
+        log "Missing memory for spawning creep", error
       dec needCreeps
 
   if needCreeps > 0:
-    logS room.name & " needs " & needCreeps & " Creeps", info
+    log room.name & " needs " & needCreeps & " Creeps", info
 
   # Sort by smalles energy cost for finishing construction
   # Extensions are priorised above walls and rampants
@@ -366,11 +366,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     maxChargers = totalEnergyNeeded.len
 
   #log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
-  #logS "needEnergy " & totalEnergyNeeded.len, debug
+  #log "needEnergy " & totalEnergyNeeded.len, debug
   if totalEnergyNeeded.len > 0 and stats.charging.len < maxChargers: # never less than 2
     # prioritized answers
     var needEnergy = energyNeeded(room)
-    #logS "changing to chargers", debug
+    #log "changing to chargers", debug
 
     if stats.idle.len > 0:
       changeActionToClosest(stats, Idle, Charge, needEnergy)
@@ -407,11 +407,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   #  creep.mem(CreepMemory).role == Worker
 
   # Handle towers if available
-  #logS "have " & towers.len & " towers", info
+  #log "have " & towers.len & " towers", info
   for tower in towers:
     handleTower(tower)
 
-  #logS "have " & towers.len & " towers", info
+  #log "have " & towers.len & " towers", info
   for link in links:
     handleLink(link)
 
@@ -449,7 +449,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
         #logH creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate
         true
       else:
-        #logS creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate, debug
+        #log creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate, debug
         false
 
     if slurper != nil:
@@ -459,6 +459,6 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
       log slurper.name & " is Vulture"
       slurper.say "Vulture"
     else:
-      logS "no slurper"
+      log "no slurper"
 
-    logS "on the floor is " & resource.amount & " of " & resource.resourceType
+    log "on the floor is " & resource.amount & " of " & resource.resourceType

@@ -42,10 +42,10 @@ import role_healer
 
 proc cmdTester(txt: cstring): int =
   memory.GameMemory.cmd = txt
-  logS "received cmd: " & txt, info
+  log "received cmd: " & txt, info
 
 screepsLoop: # this conaints the main loop which is exported to the game
-  #logS game.time & " ticks (compiled at " & compiletime & ")", info
+  #log game.time & " ticks (compiled at " & compiletime & ")", info
 
   #echo CONSTRUCTION_COST["road"]
   registerCmd("cmd", cmdTester)
@@ -53,7 +53,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
   # initialize room memory (once)
   for name, rm in memory.rooms:
     if rm.isEmpty:
-      logS "init room" & name
+      log "init room" & name
       var init: RoomMemory
       memory.rooms[name] = init
 
@@ -71,10 +71,10 @@ screepsLoop: # this conaints the main loop which is exported to the game
         redistribute = true
       memory.creeps.delete name
       inc deads
-      logS "Clearing non-existing creep memory: " & name
+      log "Clearing non-existing creep memory: " & name
 
   if deads > 0:
-    logS "R.I.P. " & deads
+    log "R.I.P. " & deads
 
   # we need to handle pirates and claimers global
   var pirates: seq[Creep] = @[]
@@ -154,4 +154,4 @@ screepsLoop: # this conaints the main loop which is exported to the game
         #creep.say "Healer"
 
   if minTicks < 4:
-    logS "Next death in " & minTicks & " ticks."
+    log "Next death in " & minTicks & " ticks."

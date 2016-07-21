@@ -11,7 +11,7 @@ proc roleUplinker*(creep: Creep) =
 
   let controller = creep.room.controller
   if controller == nil:
-    logS "No controller?", error
+    log "No controller?", error
     return
 
   # initial setup for the creep target and source
@@ -32,7 +32,7 @@ proc roleUplinker*(creep: Creep) =
       elif ret == ERR_NOT_ENOUGH_ENERGY:
         creep.say "Wait?"
       elif ret != OK:
-        logS creep.name & "is lost:" & ret
+        log creep.name & "is lost:" & ret
     # should work in same tick
     if creep.carry.energy > 0:
       discard creep.upgradeController(creep.room.controller)

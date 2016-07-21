@@ -25,7 +25,7 @@ proc roleHarvester*(creep: Creep) =
       let harvesters = creep.room.memory.RoomMemory.stats.harvesters
       var freeSource = true
       for harvester in harvesters:
-        logS harvester.name & " " & source.id
+        log harvester.name & " " & source.id
         if source.id == harvester.memory.CreepMemory.sourceId:
           freeSource = false
       if freeSource:
@@ -34,7 +34,7 @@ proc roleHarvester*(creep: Creep) =
         break
 
     if ourSource == nil:
-      logS creep.name & " could not find a source in " & creep.room.name, error
+      log creep.name & " could not find a source in " & creep.room.name, error
       return
 
     # harvesters always fill the nearest container / link to the source
@@ -53,7 +53,7 @@ proc roleHarvester*(creep: Creep) =
         elif target.structureType == STRUCTURE_TYPE_LINK:
           rm.sourceLinks.uniqueAdd target.id
       else:
-        logS creep.name & ": No container in reach? Roaming a bit!", error
+        log creep.name & ": No container in reach? Roaming a bit!", error
         let source = game.getObjectById(cm.sourceId, Source)
         # we dance around the source so a build gets through to a construction site
         creep.moveTo(source.pos.x + (game.time mod 5) - 2, source.pos.y + (game.time mod 5) - 2)
@@ -61,7 +61,7 @@ proc roleHarvester*(creep: Creep) =
   let target = game.getObjectById(cm.targetId, EnergizedStructure)
   if target == nil:
     # recalibrate?
-    logS "Recalibrate?", error
+    log "Recalibrate?", error
     cm.sourceId = nil.ObjId
     cm.targetId = nil.ObjId
     return
@@ -71,29 +71,29 @@ proc roleHarvester*(creep: Creep) =
       # if your target is a container we want to sit on it!
       if target.structureType == STRUCTURE_TYPE_CONTAINER and
         not creep.pos.isEqualTo(target.pos):
-        logS "Harvester " & creep.name & " moves onto container", debug
+        log "Harvester " & creep.name & " moves onto container", debug
         creep.moveTo(target)
       else:
         let source = game.getObjectById(cm.sourceId, Source)
         let ret = creep.harvest(source)
         if ret == ERR_NOT_IN_RANGE:
-          logS "Harvester " & creep.name & " moves to source", debug
+          log "Harvester " & creep.name & " moves to source", debug
           creep.moveTo(source)
         elif ret == ERR_NOT_ENOUGH_ENERGY:
           creep.say "Empty?"
         elif ret != OK and ret != ERR_BUSY:
           creep.say "#?%!"
-          logS creep.name & " is lost: " & ret
+          log creep.name & " is lost: " & ret
 
   if creep.carry.energy > 0:
     var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
     if ret == ERR_NOT_FOUND:
-      logS "Container gone?", error
+      log "Container gone?", error
       cm.targetId = nil.ObjId
     elif ret == ERR_NOT_IN_RANGE:
-      logS "Harvester moves "  & creep.name & " to target", debug
+      log "Harvester moves "  & creep.name & " to target", debug
       creep.moveTo(target)
     elif ret == ERR_FULL:
-      logS "Container full!", error
+      log "Container full!", error
     elif ret != OK:
-      logS "Container problem: " & ret, error
+      log "Container problem: " & ret, error

@@ -34,19 +34,19 @@ proc roleWorker*(creep: Creep) =
           cm.slurpId = nil.ObjId
           cm.refilling = false
           creep.say "Gone?"
-          logS creep.name & " Gone?"
+          log creep.name & " Gone?"
         else:
           let ret = creep.pickup(resource)
           if ret == ERR_NOT_IN_RANGE:
             creep.moveTo(resource)
           elif ret == OK:
             creep.say "Slurped"
-            logS creep.name  & " Slurped"
+            log creep.name  & " Slurped"
             cm.slurpId = nil.ObjId
             cm.refilling = false
           elif ret != OK and ret != ERR_BUSY:
             creep.say "Cough"
-            logS creep.name & " Cough" & ret
+            log creep.name & " Cough" & ret
             cm.slurpId = nil.ObjId
             cm.refilling = false
       else:
@@ -76,7 +76,7 @@ proc roleWorker*(creep: Creep) =
               creep.moveTo(storage)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
-              logS creep.name & " is lost: " & ret
+              log creep.name & " is lost: " & ret
 
         if useSource == UseSource.check:
           # find a container... if it has "enough" energy go there
@@ -92,7 +92,7 @@ proc roleWorker*(creep: Creep) =
               creep.moveTo(container)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
-              logS creep.name & " is lost: " & ret
+              log creep.name & " is lost: " & ret
 
         if useSource != UseSource.nope:
           let source = game.getObjectById(cm.sourceId, Source)
@@ -107,7 +107,7 @@ proc roleWorker*(creep: Creep) =
               creep.say "Empty?"
           elif ret != OK and ret != ERR_BUSY:
             creep.say "#?%!"
-            logS creep.name & " is lost: " & ret
+            log creep.name & " is lost: " & ret
 
     else:
       #echo creep.name, " is now full"
@@ -169,9 +169,9 @@ proc roleWorker*(creep: Creep) =
         let target = game.getObjectById(cm.targetId, Structure)
         let ret = creep.moveTo(target)
         if ret == OK:
-          logS creep.name & " is traveling to " & target.pos.roomName, info
+          log creep.name & " is traveling to " & target.pos.roomName, info
         elif ret != ERR_TIRED:
-          logS creep.name & " (traveling) error " & ret, info
+          log creep.name & " (traveling) error " & ret, info
 
         if creep.room.name == target.pos.roomName:
           cm.action = Idle # let the new room choose what to do

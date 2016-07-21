@@ -26,7 +26,7 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
   if hostileCreeps.len > 0:
     closestCreep = creep.pos.findClosestByPath(hostileCreeps)
     if closestCreep != nil:
-      logS "closest is: " & closestCreep.id
+      log "closest is: " & closestCreep.id
       var ranged = false
       var melee = false
       for b in creep.body:
@@ -45,7 +45,7 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
             return # while going there
 
         var ret = creep.moveTo(closestCreep)
-        logS creep.name & "moves to attack (" & ret & ")"
+        log creep.name & "moves to attack (" & ret & ")"
         return
 
   if creep.room.name == pirateTarget:
@@ -106,13 +106,13 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
           return # while going there
 
       var ret = creep.moveTo(closestStruct)
-      logS creep.name & " moves to attack (" & ret & ")"
+      log creep.name & " moves to attack (" & ret & ")"
 
   else:
     if pirateTarget != "":
       #log "pirateTarget is ", pirateTarget
       let ret = travel(creep, pirateTarget)
-      logS creep.name & "moving to target (" & ret & ")"
+      log creep.name & "moving to target (" & ret & ")"
     else:
       #log "moving to flag"
       creep.moveTo(game.flags.?Flag1)

@@ -20,6 +20,6 @@ proc roleClaimer*(creep: Creep) =
       let ret = creep.reserveController(controller)
       if ret != OK:
         creep.moveTo(controller)
-        logS "claiming", debug
+        log "claiming", debug
     else:
-      logS "what now? " & $$ret, debug
+      log "what now? " & $$ret, debug

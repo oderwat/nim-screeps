@@ -69,7 +69,7 @@ proc short*(action: Actions): cstring =
   elif action == Upgrade:
     result = "U"
   else:
-    logS "unsuported change action " & $action, error
+    log "unsuported change action " & $action, error
     return
 
 proc `$$`*(role: Roles): cstring =
@@ -97,9 +97,9 @@ proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
     break
 
   if srclen - 1 != src.len:
-    logS "CA error src " & src.len & " " & srclen
+    log "CA error src " & src.len & " " & srclen
   if dstlen + 1 != dst.len:
-    logS "CA error dst " & dst.len & " " & dstlen
+    log "CA error dst " & dst.len & " " & dstlen
 
 
 proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
@@ -124,13 +124,13 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
       break
 
   if srclen - 1 != src.len:
-    logS "CC error src " & src.len & " " & srclen & " " & $srcAction
+    log "CC error src " & src.len & " " & srclen & " " & $srcAction
   if dstlen + 1 != dst.len:
-    logS "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
+    log "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
 
 
 proc logInfo*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
-  logS "wrk: " & stats.workers.len & " " &
+  log "wrk: " & stats.workers.len & " " &
     "def: " & stats.defenders.len & " " &
     "pir: " & stats.pirates.len & " (" & globalPirates.len & ") " &
     "chg: " & stats.charging.len & " " &

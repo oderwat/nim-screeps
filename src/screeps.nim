@@ -29,7 +29,7 @@ when defined(logext):
     "red",
     "orange" ]
 
-  template logS*(message: cstring, severity: LogSeverity = normal) =
+  template log*(message: cstring, severity: LogSeverity = normal) =
     when defined(logci):
       let ii = instantiationInfo(-1)
       let ci: cstring = ii.filename & "/" & ii.line & ": "
@@ -38,14 +38,6 @@ when defined(logext):
     else:
       consoleLog "<font color='" & colors[severity] & "' " & """severity="""" &
         $severity & """"""" & ">" & message & "</font>"
-
-  template log*(message: cstring) =
-    when defined(logci):
-      let ii = instantiationInfo(-1)
-      let ci: cstring = ii.filename & "/" & ii.line & ": "
-      consoleLog(ci & message)
-    else:
-      consoleLog(message)
 
   template logH*(message: cstring) =
     const highlight = "#ffff00".cstring
@@ -57,7 +49,7 @@ when defined(logext):
       consoleLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
 
   proc dump*(args: varargs[cstring, stringify]) =
-    for x in args: logS x, debug
+    for x in args: log x, debug
 
 else:
   proc log*(s: cstring) {.importc: "console.log", varargs.}

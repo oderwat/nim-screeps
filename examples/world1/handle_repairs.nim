@@ -17,7 +17,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
     if s.hitsMax < 6000:
       if s.hits.float / s.hitsMax.float <= 0.95:
         hitsmissing += s.hitsMax - s.hits
-        #logS s.hits & " " & s.structureType, debug
+        #log s.hits & " " & s.structureType, debug
       return s.hits < s.hitsMax
 
     if s.structureType == STRUCTURE_TYPE_WALL:
@@ -26,7 +26,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
       false #s.hits < 10000
 
   var repairs = room.find(Structure, checkHits)
-  logS "repairs needed total: " & repairs.len, debug
+  log "repairs needed total: " & repairs.len, debug
 
   # sort by structures with fewest health
   repairs.sort() do (a, b: Structure) -> int:
@@ -71,7 +71,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
             creep.say "R" & closest.pos.at
             m.targetId = closest.id
         else:
-          logS "no closest for " & creep.name & "?"
+          log "no closest for " & creep.name & "?"
           creep.say "NoWay!"
           m.action = Idle
           m.targetId = nil.ObjId
