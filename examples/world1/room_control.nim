@@ -109,7 +109,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var wantImigrants = 0
   if room.name != "W39N7".RoomName:
     # do we want imigrant workers?
-    wantImigrants = 1
+    wantImigrants = 2
 
   if wantImigrants > 0:
     for creep in creeps:
@@ -126,6 +126,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
         # only creeps from our main room
         if creep.room.name != "W39N7".RoomName:
+          continue
+
+        if creep.ticksToLive < 1000:
+          # no granies
           continue
 
         var cm = creep.memory.CreepMemory
@@ -208,7 +212,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   elif room.energyCapacityAvailable < 950:
     # 800
-    workBody = @[WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 600
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   else:
