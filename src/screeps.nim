@@ -231,8 +231,20 @@ type
 
   Flag* = ref FlagObj
 
-  # TODO: Mineral
-  # TODO: Nuke
+  MineralObj* {.exportc.} = object of RoomObjectObj
+    mineralAmount*: int
+    mineralType*: ResourceType
+    id*: ObjId
+    ticksToRegeneration*: int
+
+  Mineral* = ref MineralObj
+
+  NukeObj* {.exportc.} = object of RoomObjectObj
+    id*: ObjId
+    launchRoomName*: RoomName
+    timeToLand*: int
+
+  Nuke* = ref NukeObj
 
   ResourceObj* {.exportc.} = object of RoomObjectObj
     id*: ObjId
@@ -283,9 +295,16 @@ type
   StructureExtensionObj* = object of EnergizedStructureObj
   StructureExtension* = ref StructureExtensionObj
 
-  # TODO: StructureExtractor
-  # TODO: StructureKeeperLair
-  # TODO: StructureLab
+  StructureExtractorObj* = object of OwnedStructureObj
+  StructureExtractor* = ref StructureExtractorObj
+
+  StructureKeeperLairObj* {.exportc.} = object of OwnedStructureObj
+    ticksToSpawn*: int
+
+  StructureKeeperLair* = ref StructureKeeperLairObj
+
+  StructureLabObj* = object of OwnedStructureObj
+  StructureLab* = ref StructureLabObj
 
   StructureLinkObj* {.exportc.} = object of EnergizedStructureObj
     cooldown*: int
