@@ -129,7 +129,7 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     logS "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
 
 
-proc log*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
+proc logInfo*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
   logS "wrk: " & stats.workers.len & " " &
     "def: " & stats.defenders.len & " " &
     "pir: " & stats.pirates.len & " (" & globalPirates.len & ") " &

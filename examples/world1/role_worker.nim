@@ -34,19 +34,19 @@ proc roleWorker*(creep: Creep) =
           cm.slurpId = nil.ObjId
           cm.refilling = false
           creep.say "Gone?"
-          log creep.name, "Gone?"
+          logS creep.name & " Gone?"
         else:
           let ret = creep.pickup(resource)
           if ret == ERR_NOT_IN_RANGE:
             creep.moveTo(resource)
           elif ret == OK:
             creep.say "Slurped"
-            log creep.name, "Slurped"
+            logS creep.name  & " Slurped"
             cm.slurpId = nil.ObjId
             cm.refilling = false
           elif ret != OK and ret != ERR_BUSY:
             creep.say "Cough"
-            log creep.name, "Cough", ret
+            logS creep.name & " Cough" & ret
             cm.slurpId = nil.ObjId
             cm.refilling = false
       else:
@@ -76,7 +76,7 @@ proc roleWorker*(creep: Creep) =
               creep.moveTo(storage)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
-              log creep.name, "is lost:", ret
+              logS creep.name & " is lost: " & ret
 
         if useSource == UseSource.check:
           # find a container... if it has "enough" energy go there
@@ -92,7 +92,7 @@ proc roleWorker*(creep: Creep) =
               creep.moveTo(container)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
-              log creep.name, "is lost:", ret
+              logS creep.name & " is lost: " & ret
 
         if useSource != UseSource.nope:
           let source = game.getObjectById(cm.sourceId, Source)
@@ -107,7 +107,7 @@ proc roleWorker*(creep: Creep) =
               creep.say "Empty?"
           elif ret != OK and ret != ERR_BUSY:
             creep.say "#?%!"
-            log creep.name, "is lost:", ret
+            logS creep.name & " is lost: " & ret
 
     else:
       #echo creep.name, " is now full"
@@ -139,7 +139,7 @@ proc roleWorker*(creep: Creep) =
             creep.say "done"
             cm.targetId = nil.ObjId
             cm.action = Idle
-          logH "building"
+          #logH "building"
         elif ret == ERR_NOT_IN_RANGE:
           logH "moving to site " & target.pos.at
           creep.moveTo(target)

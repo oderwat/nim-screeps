@@ -33,7 +33,7 @@ proc roleHauler*(creep: Creep) =
       elif ret == ERR_NOT_ENOUGH_ENERGY:
         creep.say "Wait?"
       elif ret != OK and ret != ERR_BUSY:
-        log creep.name, "is lost:", ret
+        logS creep.name & " is lost: " & ret
 
     # should work (move) in same tick
     if creep.carry.energy > 0:
@@ -42,4 +42,4 @@ proc roleHauler*(creep: Creep) =
       if ret == ERR_NOT_IN_RANGE:
         creep.moveTo(storage)
       elif ret != OK and ret != ERR_BUSY:
-        log creep.name, "is lost:", ret
+        logS creep.name & " is lost: " & ret

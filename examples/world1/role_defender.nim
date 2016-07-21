@@ -23,12 +23,12 @@ proc roleDefender*(creep: Creep) =
       closest = creep.pos.findClosestByRange(hostiles)
 
     if closest == nil:
-      log "this should not happen (155)"
+      logS "this should not happen (155)"
       closest = hostiles[0]
 
     if creep.rangedAttack(closest) != OK:
       var ret = creep.moveTo(closest)
-      log creep.name, " moves to attack (", ret, ")"
+      logS creep.name & " moves to attack (" & ret & ")"
 
   else:
     for flag in game.flags:

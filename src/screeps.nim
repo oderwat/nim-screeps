@@ -29,16 +29,32 @@ when defined(logext):
     "red",
     "orange" ]
 
-  proc log*(s: cstring) {.importcpp: "jslog(\"<font color=\\\"" & $colors[normal] &
-    "\\\" severity=\\\"3\\\">\", @ ,\"</font>\")", varargs.}
+  template logS*(message: cstring, severity: LogSeverity = normal) =
+    when defined(logci):
+      let ii = instantiationInfo(-1)
+      let ci: cstring = ii.filename & "/" & ii.line & ": "
+      consoleLog ci & "<font color='" & colors[severity] & "' " & """severity="""" &
+        $severity & """"""" & ">" & message & "</font>"
+    else:
+      consoleLog "<font color='" & colors[severity] & "' " & """severity="""" &
+        $severity & """"""" & ">" & message & "</font>"
 
-  proc logS*(message: cstring, severity: LogSeverity = normal) =
-    jsLog "<font color='" & colors[severity] & "' " & """severity="""" &
-      severity & """"""" & ">" & message & "</font>"
+  template log*(message: cstring) =
+    when defined(logci):
+      let ii = instantiationInfo(-1)
+      let ci: cstring = ii.filename & "/" & ii.line & ": "
+      consoleLog(ci & message)
+    else:
+      consoleLog(message)
 
-  proc logH*(message: cstring) =
+  template logH*(message: cstring) =
     const highlight = "#ffff00".cstring
-    jsLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
+    when defined(logci):
+      let ii = instantiationInfo(-1)
+      let ci: cstring = ii.filename & "/" & ii.line & ": "
+      consoleLog ci & "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
+    else:
+      consoleLog "<font color=\"" & highlight & "\" type=\"highlight\">" & message & "</font>"
 
   proc dump*(args: varargs[cstring, stringify]) =
     for x in args: logS x, debug

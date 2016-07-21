@@ -53,7 +53,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
   # initialize room memory (once)
   for name, rm in memory.rooms:
     if rm.isEmpty:
-      log "init room", name
+      logS "init room" & name
       var init: RoomMemory
       memory.rooms[name] = init
 
@@ -71,10 +71,10 @@ screepsLoop: # this conaints the main loop which is exported to the game
         redistribute = true
       memory.creeps.delete name
       inc deads
-      log "Clearing non-existing creep memory:", name
+      logS "Clearing non-existing creep memory: " & name
 
   if deads > 0:
-    log "R.I.P.", deads
+    logS "R.I.P. " & deads
 
   # we need to handle pirates and claimers global
   var pirates: seq[Creep] = @[]
@@ -152,9 +152,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
       of Healer:
         creep.roleHealer
         #creep.say "Healer"
-      else:
-        log "unknown creep role", creep.name
-        creep.say "???"
 
   if minTicks < 4:
     logS "Next death in " & minTicks & " ticks."

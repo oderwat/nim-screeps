@@ -26,7 +26,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
       false #s.hits < 10000
 
   var repairs = room.find(Structure, checkHits)
-  logH $$repairs.len
+  logS "repairs needed total: " & repairs.len, debug
 
   # sort by structures with fewest health
   repairs.sort() do (a, b: Structure) -> int:
@@ -71,7 +71,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
             creep.say "R" & closest.pos.at
             m.targetId = closest.id
         else:
-          log "no closest for", creep.name, "?"
+          logS "no closest for " & creep.name & "?"
           creep.say "NoWay!"
           m.action = Idle
           m.targetId = nil.ObjId

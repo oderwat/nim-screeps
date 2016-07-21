@@ -25,7 +25,7 @@ proc roleHarvester*(creep: Creep) =
       let harvesters = creep.room.memory.RoomMemory.stats.harvesters
       var freeSource = true
       for harvester in harvesters:
-        log harvester.name, source.id
+        logS harvester.name & " " & source.id
         if source.id == harvester.memory.CreepMemory.sourceId:
           freeSource = false
       if freeSource:
@@ -66,7 +66,8 @@ proc roleHarvester*(creep: Creep) =
     cm.targetId = nil.ObjId
     return
 
-  if creep.carry.energy < creep.carryCapacity:
+  # Move to the source (or on top of the container)
+  if creep.carry.energy < creep.carryCapacity or creep.carryCapacity == 0:
       # if your target is a container we want to sit on it!
       if target.structureType == STRUCTURE_TYPE_CONTAINER and
         not creep.pos.isEqualTo(target.pos):
@@ -82,7 +83,7 @@ proc roleHarvester*(creep: Creep) =
           creep.say "Empty?"
         elif ret != OK and ret != ERR_BUSY:
           creep.say "#?%!"
-          log creep.name, "is lost:", ret
+          logS creep.name & " is lost: " & ret
 
   if creep.carry.energy > 0:
     var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)

@@ -7,7 +7,7 @@ import screeps
 import screeps_utils
 import types
 
-const claimRoom = "W38N7".RoomName
+const claimRoom = "W39N8".RoomName
 
 proc roleClaimer*(creep: Creep) =
   let controller = creep.room.controller

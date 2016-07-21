@@ -32,7 +32,7 @@ proc roleUplinker*(creep: Creep) =
       elif ret == ERR_NOT_ENOUGH_ENERGY:
         creep.say "Wait?"
       elif ret != OK:
-        log creep.name, "is lost:", ret
+        logS creep.name & "is lost:" & ret
     # should work in same tick
     if creep.carry.energy > 0:
       discard creep.upgradeController(creep.room.controller)

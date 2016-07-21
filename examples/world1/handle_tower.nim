@@ -21,7 +21,7 @@ proc handleTower*(tower: StructureTower) =
       if closestDamegedCreep != nil:
         tower.heal(closestDamegedCreep)
 
-    if tower.energy > tower.energyCapacity div 3: # and tower.room.name != "W39N8":
+    if tower.energy > tower.energyCapacity div 3 and tower.room.name != "W38N7":
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
         if structure.hits == structure.hitsMax:
           return false

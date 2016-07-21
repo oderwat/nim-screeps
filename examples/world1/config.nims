@@ -6,6 +6,7 @@ import ospaths
 let deployDir = thisDir() / "../../deploy/world1"
 
 --d:logext # we use extened logging
+--d:logci # logging with caller info (file / line)
 
 --d:js # so nimsuggest has a clue that we build for js backend
 --d:nodejs

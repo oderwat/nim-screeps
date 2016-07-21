@@ -21,6 +21,10 @@ proc energyNeededTotal(room: Room): auto =
       let tower = struct.StructureTower
       result = tower.energy < tower.energyCapacity
 
+    elif struct.structureType == STRUCTURE_TYPE_SPAWN:
+      let spawn = struct.StructureSpawn
+      result = spawn.energy < spawn.energyCapacity
+
     else: result = false
 
 proc energyNeeded(room: Room): auto =
@@ -28,7 +32,7 @@ proc energyNeeded(room: Room): auto =
   result = room.find(Structure) do (struct: Structure) -> bool:
     if struct.structureType == STRUCTURE_TYPE_SPAWN:
       let spawn = struct.StructureSpawn
-      return spawn.energy.float < spawn.energyCapacity.float * 0.90
+      return spawn.energy < spawn.energyCapacity
     return false
 
   if result.len > 0:
@@ -53,7 +57,7 @@ template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
         let rm = CreepMemory(role: newRole, refilling: true, action: Idle)
         var name = spawn.createCreep(body, nil, rm)
         if name != "":
-          log "New", roleName, name, "is spawning"
+          logS "New" & roleName & name & "is spawning"
           dec needCreeps
           break
 
@@ -105,7 +109,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var wantImigrants = 0
   if room.name != "W39N7".RoomName:
     # do we want imigrant workers?
-    wantImigrants = 2
+    wantImigrants = 1
 
   if wantImigrants > 0:
     for creep in creeps:
@@ -131,7 +135,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
           cm.refilling = true
           cm.targetId = room.controller.id
           dec wantImigrants
-          log creep.name, " is migrating"
+          logS creep.name & " is migrating"
         elif cm.role == Worker:
           # any creep for now
           cm.action = Migrate
@@ -139,7 +143,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
           cm.refilling = true
           cm.imigrant = true
           dec wantImigrants
-          log creep.name, " was hired"
+          logS creep.name & " was hired"
 
       stats = creeps.stats()
 
@@ -164,7 +168,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
   # just for fun :)
   #pirateBody = @[WORK,WORK,WORK,WORK,WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
-  pirateBody = @[ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+  #pirateBody = @[ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+  pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE]
 
   tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
   healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
@@ -172,7 +177,13 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
   # bodies for 800 at least
   # harves body
-  harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+  if clevel < 3:
+    # no carry so it only works with containers (not for links)
+    # but there are not links with clevel < 3
+    harvestBody = @[WORK, WORK, WORK, WORK, WORK, MOVE]
+  else:
+    # this also works for links as it can transfer the energy
+    harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
   #uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
   uplinkBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
 
@@ -214,14 +225,15 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
 
   let wantWorkers = if stats.uplinkers.len > 0: 6 else: 10
-  let wantDefenders = if clevel >= 5: 2 else: 0
-  let wantPirates = if clevel >= 5: 2 else: 0
+  let wantDefenders = if clevel >= 5: 1 else: 0
+  let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough
   let wantHarvesters = if clevel >= 2 and containers.len > 0 and stats.workers.len > 2: sources.len else: 0
-  logH "wantHarvesters: " & wantHarvesters
+  #logH "wantHarvesters: " & wantHarvesters
 
-  let wantClaimers = 0 #if clevel >= 5: 1 else: 0
+  # this needs to be done differently (global list of rooms to claim for example)
+  let wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
 
   # charge handling
   var minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
@@ -258,8 +270,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
   # claimers (global)
   if globalClaimers.len < wantClaimers:
-    needCreeps += wantClaimers - globalClaimers.len
-    mySpawn Claimer, claimBody, needCreeps
+    # if we need more than one we get one out if the oldest has only 100 ticks left
+    if globalClaimers.len == 0 or globalClaimers[0].ticksToLive < 250:
+      needCreeps += wantClaimers - globalClaimers.len
+      mySpawn Claimer, claimBody, needCreeps
 
   if stats.haulers.len < wantHaulers:
     needCreeps += wantHaulers - stats.haulers.len
@@ -347,8 +361,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     minChargers = totalEnergyNeeded.len
     maxChargers = totalEnergyNeeded.len
 
-  log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
-  #logS "needEnergy " & needEnergy.len, debug
+  #log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
+  #logS "needEnergy " & totalEnergyNeeded.len, debug
   if totalEnergyNeeded.len > 0 and stats.charging.len < maxChargers: # never less than 2
     # prioritized answers
     var needEnergy = energyNeeded(room)
@@ -405,7 +419,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   if gm.logStats or gm.cmd == "show stats":
     if gm.cmd == "show stats":
       gm.cmd = nil
-    stats.log globalPirates, globalClaimers
+    stats.logInfo globalPirates, globalClaimers
 
   # check for dropped resources
   let drops = room.find(Resource)
@@ -428,19 +442,19 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
       # estimate if there will be something left
       let estimate = resource.amount - (distance + distance div 2)
       if estimate > 0 and (free >= estimate or (creep.carryCapacity > 0 and estimate > creep.carryCapacity)):
-        logH creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate
+        #logH creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate
         true
       else:
-        logS creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate, debug
+        #logS creep.name & " " & distance & " " & resource.amount & " " & free & " " & estimate, debug
         false
 
     if slurper != nil:
       let cm = slurper.memory.CreepMemory
       cm.refilling = true
       cm.slurpId = resource.id
-      log slurper.name, "is Vulture"
+      log slurper.name & " is Vulture"
       slurper.say "Vulture"
     else:
-      log "no slurper"
+      logS "no slurper"
 
-    log "on the floor is ", resource.amount, "of", resource.resourceType
+    logS "on the floor is " & resource.amount & " of " & resource.resourceType
