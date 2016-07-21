@@ -25,7 +25,6 @@ proc roleHarvester*(creep: Creep) =
       let harvesters = creep.room.memory.RoomMemory.stats.harvesters
       var freeSource = true
       for harvester in harvesters:
-        log harvester.name & " " & source.id
         if source.id == harvester.memory.CreepMemory.sourceId:
           freeSource = false
       if freeSource:
@@ -34,7 +33,38 @@ proc roleHarvester*(creep: Creep) =
         break
 
     if ourSource == nil:
-      log creep.name & " could not find a source in " & creep.room.name, error
+      # check for a construction site near of the source. if we have one, build it
+      # this is pretty unoptimized but better than doing nothing at all
+      let sources = creep.room.find(Source)
+      for source in sources:
+        let near = source.pos.findClosestByPath(ConstructionSite) do(site: ConstructionSite) -> bool:
+          site.structureType == STRUCTURE_TYPE_CONTAINER
+        if near != nil and not source.pos.inRangeTo(near,2): continue # no? check the next source
+
+        if creep.carryCapacity == 0:
+          log "harvester without carry but not container", error
+          return
+
+        log "Harvester " & creep.name & " builds its own container"
+        if creep.carry.energy == 0:
+          cm.refilling = true
+        if creep.carry.energy == creep.carryCapacity:
+          cm.refilling = false;
+
+        if not cm.refilling:
+          # we move there and build
+          let ret = creep.build(near)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(near)
+          return
+        else:
+          let ret = creep.harvest(source)
+          if ret == ERR_NOT_IN_RANGE:
+            log "Harvester " & creep.name & " moves to source", debug
+            creep.moveTo(source)
+          return
+
+      log creep.name & " could not find a source with container in " & creep.room.name, error
       return
 
     # harvesters always fill the nearest container / link to the source
