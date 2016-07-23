@@ -20,7 +20,7 @@ If that sounds vaguely interesting to you go and try the free website based [liv
 
 Nim is a statically typed, imperative programming language with major metaprogramming possibilities.
 
-> What [Wikipedia](https://en.wikipedia.org/wiki/Nim_(programming_language) thinks what Nim is!
+> What [Wikipedia](https://en.wikipedia.org/wiki/Nim_(programming_language)) thinks what Nim is!
 
 Nim can be used as a systems programming language and offers different code generator backends.
 
@@ -111,9 +111,28 @@ After some time it should look like this:
 
 ![Screeps Screenshot](assets/sim1.gif)
 
+## Using scup as uploader
+
+Recently I added a small tool for uploading the compiled code onto the screeps server. This works without the Steam client running. You need to set your password in your account.
+
+The tool uses the same config file as the [screeps-console](https://github.com/screepers/screeps_console), which also is supported for extended logging.
+
+Basically you need a yaml file in your home `~/.screeps_settings.yaml` which contains at least this infomation:
+
+```yaml
+# Screeps account info
+# Your username is your full email address.
+screeps_username: you@yourmail.com
+screeps_password: yourpassincleartext
+```
+
+Using scup is kinda mandatory right now, as it automatically gets build and is being used if you `nim build main.nim` in `examples/world1`
+
+scup is called with two parameters. The name of the branch and the name of the file which should get uploaded. Notice that this is only uploading eine file as nim-screeps compiles everything in one file.
+
 ### Example: world1
 
-`world1` is very experimental and used for testing the Nim module development. Don't expect it to be a good module from design or gameplay perspective.
+`world1` is very experimental and used for testing the Nim module development. Even if it was just made for testing the implementation it works quite well at let sustain playing with 2+ rooms already for some weeks.
 
 There will probably more examples soon. Feel free to contribute.
 

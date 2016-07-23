@@ -20,6 +20,7 @@ const endpoint = "https://screeps.com/api/user/code"
 #let programName = paramStr(0)
 let arguments = commandLineParams()
 
+doAssert(arguments.len == 2)
 let branch = arguments[1]
 let filepath = arguments[0]
 

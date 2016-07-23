@@ -83,7 +83,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   template clevel: int = room.controller.level
 
   logH "- " & room.name & " - CL: " & room.controller.level & " - EC: " &
-    room.energyAvailable & "/" & room.energyCapacityAvailable & "--------#"
+    room.energyAvailable & "/" & room.energyCapacityAvailable & "-----#001"
 
   let sources = room.find(Source)
   let creeps = room.findMy(Creep)
