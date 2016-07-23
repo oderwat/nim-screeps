@@ -4,6 +4,10 @@ import ospaths
 
 # deploy location
 let deployDir = thisDir() / "../../deploy/world1"
+# tool location
+let toolDir = thisDir() / "../../tool"
+# bin location
+let binDir = thisDir() / "../../bin"
 
 --d:logext # we use extened logging
 --d:logci # logging with caller info (file / line)
@@ -21,6 +25,37 @@ if fileExists(thisDir() / "../../src/screeps.nim"):
   switch("path",thisDir() / "../../src")
 
 task build, "build":
+  # compiling our script
+  try:
+    exec("nim compile_js --hint[conf]:off main.nim")
+  except:
+    quit 5
+
+  # compiling the upload tool if needed
+  var buildTool = not fileExists(bindir / "scup")
+  if not buildTool:
+    withDir toolDir:
+      # well.. there is no way to compare files timestamps yet for nimscript afaik
+      let test = staticExec("find ../bin -name scup -not -mnewer scup.nim")
+      if test != "":
+        buildTool = true
+
+  if buildTool:
+    withDir toolDir:
+      echo("Building upload tool...");
+      try:
+        exec("nim build --hint[conf]:off scup.nim")
+        echo("ok!");
+      except:
+        quit 5
+
+  try:
+    exec(binDir / "scup \"" & deployDir / "main.js\" " & "world1")
+  except:
+    echo "error while sending script to server!"
+    quit 5
+
+task compile_js, "compileJS":
   setCommand("js")
 
   var quick = false

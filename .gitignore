@@ -3,3 +3,5 @@ deploy/*/*.js
 examples/world1/piratetarget.nim
 htmldoc/
 jsondoc/
+bin/
+tool/nimcache

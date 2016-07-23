@@ -83,7 +83,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   template clevel: int = room.controller.level
 
   logH "- " & room.name & " - CL: " & room.controller.level & " - EC: " &
-    room.energyAvailable & "/" & room.energyCapacityAvailable & "---------"
+    room.energyAvailable & "/" & room.energyCapacityAvailable & "--------#"
 
   let sources = room.find(Source)
   let creeps = room.findMy(Creep)
@@ -109,7 +109,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var wantImigrants = 0
   if room.name != "W39N7".RoomName:
     # do we want imigrant workers?
-    wantImigrants = 2
+    wantImigrants = 0
 
   if wantImigrants > 0:
     for creep in creeps:
@@ -228,8 +228,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
 
-  let wantWorkers = if stats.uplinkers.len > 0: 6 else: 10
-  let wantDefenders = if clevel >= 5: 1 else: 0
+  let wantWorkers = if stats.uplinkers.len > 0: 8 else: 10
+  let wantDefenders = if clevel >= 5: 0 else: 0
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough

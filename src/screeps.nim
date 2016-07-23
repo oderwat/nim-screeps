@@ -218,6 +218,7 @@ type
     my*: bool
     name*: cstring
     owner*: User
+    saying*: cstring
     spawning*: bool
     ticksToLive*: int
 
@@ -614,7 +615,7 @@ proc findRoute*(map: Map, src: Room | RoomName, dst: Room | RoomName): seq[Route
 
 proc newRoomPosition*(x, y: int, name: RoomName): RoomPosition {.importcpp: "new RoomPosition(#,#,#)".}
 
-proc say*(creep: Creep, txt: cstring) {.importcpp.}
+proc say*(creep: Creep, txt: cstring, public: bool = false) {.importcpp.}
 proc harvest*(creep: Creep, source: Source): int {.importcpp.}
 proc pickup*(creep: Creep, resource: Resource): int {.importcpp.}
 proc suicide*(creep: Creep) {.importcpp.}
