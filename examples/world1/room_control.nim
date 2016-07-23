@@ -229,7 +229,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
 
 
   let wantWorkers = if stats.uplinkers.len > 0: 8 else: 10
-  let wantDefenders = if clevel >= 5: 0 else: 0
+  let wantDefenders = if clevel >= 4: 1 else: 0
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough

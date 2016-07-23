@@ -8,18 +8,29 @@ import types
 import macros
 
 proc handleTower*(tower: StructureTower) =
-    var closestHostile = tower.findClosestHostileByRange(Creep)
-    if closestHostile != nil:
-      tower.attack(closestHostile)
-
-    #log "Tower " & tower.energy
-
     if tower.energy > 0:
       var closestDamegedCreep = tower.findMyClosestByRange(Creep) do(creep: Creep) -> bool:
-        creep.hits < creep.hitsMax
+        creep.hits < creep.hitsMax div 3 # we prefer heals on 66% damage
 
       if closestDamegedCreep != nil:
         tower.heal(closestDamegedCreep)
+        return
+
+    # looking for healers in the hostiles and make them first target
+    var closestHostile = tower.findClosestHostileByRange(Creep) do(creep: Creep) -> bool:
+      for p in creep.body:
+        if p.part == Heal:
+          return true
+      return false
+
+    if closestHostile == nil:
+      closestHostile = tower.findClosestHostileByRange(Creep)
+
+    if closestHostile != nil:
+      tower.attack(closestHostile)
+      return
+
+    #log "Tower " & tower.energy
 
     if tower.energy > tower.energyCapacity div 3: # and tower.room.name != "W38N7":
       var closestDamagedStructure = tower.findClosestByRange(Structure) do(structure: Structure) -> bool:
