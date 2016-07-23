@@ -128,7 +128,7 @@ screeps_password: yourpassincleartext
 
 Using scup is kinda mandatory right now, as it automatically gets build and is being used if you `nim build main.nim` in `examples/world1`
 
-scup is called with two parameters. The name of the branch and the name of the file which should get uploaded. Notice that this is only uploading eine file as nim-screeps compiles everything in one file.
+Scup is used like this: `scup <jsfile> <branch>`. The name of the file and the name of the branch which should get uploaded. Notice that this is only uploading a single file on the branch. This is good enought because nim-screeps compiles everything in one file anyway.
 
 ### Example: world1
 
