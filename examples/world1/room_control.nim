@@ -189,10 +189,12 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     # this also works for links as it can transfer the energy
     harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
   #uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
-  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
 
   # hauling up to 300 energy should be enough
-  haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+  #haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+  # maybe even 250 is enough. We also move on roads so we need one move less
+  haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
 
   #if room.energyCapacityAvailable >= 1150:
   #  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
@@ -208,11 +210,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     fightBody = @[MOVE, RANGED_ATTACK]
   elif room.energyCapacityAvailable < 800:
     # 550 - 800
-    workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
+    workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   elif room.energyCapacityAvailable < 950:
     # 800
-    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
+    workBody = @[WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 600
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   else:
@@ -220,7 +222,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     #workBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY,
     #  CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 900
-    workBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]
+    workBody = @[WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 740
     fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, MOVE]
     # 440
@@ -228,8 +230,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
 
-  let wantWorkers = if stats.uplinkers.len > 0: 8 else: 10
-  let wantDefenders = if clevel >= 4: 1 else: 0
+  let wantWorkers = if stats.uplinkers.len > 0: 3 else: 5
+  let wantDefenders = if clevel >= 4: 0 else: 0
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough

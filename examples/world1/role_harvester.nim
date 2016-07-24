@@ -124,6 +124,6 @@ proc roleHarvester*(creep: Creep) =
       log "Harvester moves "  & creep.name & " to target", debug
       creep.moveTo(target)
     elif ret == ERR_FULL:
-      log "Container full!", error
+      log "Container in Room " & target.room.name & " is full!", error
     elif ret != OK:
       log "Container problem: " & ret, error

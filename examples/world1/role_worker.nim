@@ -119,17 +119,28 @@ proc roleWorker*(creep: Creep) =
     # need some kind of priority list here
     case cm.action:
       of Idle:
+        creep.say("Boring!")
         discard # hanging around
 
       of Charge:
         var target = game.getObjectById(cm.targetId, EnergizedStructure)
-        #echo "Charging: ", target.structureType, at target.pos
-        var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
-        if ret == ERR_NOT_IN_RANGE:
-          creep.moveTo(target)
-        else:
-          creep.say($ret.int)
+        if target.energy == target.energyCapacity:
+          creep.say("Full?")
           cm.action = Idle
+          cm.targetId = nil.ObjId
+        else:
+          #echo "Charging: ", target.structureType, at target.pos
+          var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
+          if ret == ERR_NOT_IN_RANGE:
+            creep.moveTo(target)
+          elif ret == OK:
+            creep.say("Better!")
+            cm.action = Idle
+            cm.targetId = nil.ObjId
+          else:
+            creep.say("? " & $ret.int)
+            cm.action = Idle
+            cm.targetId = nil.ObjId
 
       of Build:
         var target = game.getObjectById(cm.targetId, ConstructionSite)
