@@ -474,10 +474,14 @@ const MODE_ARENA* = "arena".ModeType
 
 # screeps specials
 
-proc createCreep*(spawn: StructureSpawn, body: openArray[BodyPart], name: cstring, memory: MemoryEntry): cstring =
+proc createCreep*(spawn: StructureSpawn, body: openArray[BodyPart], name: cstring, memory: MemoryEntry): tuple[ret: int, name: cstring]=
   # I am hacking the inherit information from the object because screeps deadlocks
   # if its there and it is not needed for real (I think / TODO: I need to ask @araq about it!)
-  {.emit: "delete `memory`.m_type; `result` = `spawn`.createCreep(`body`, `name`, `memory`)+'';".}
+  # I also don't return the name but OK if spawning worked
+  {.emit: "delete `memory`.m_type;\n".}
+  {.emit: "{ var r = `spawn`.createCreep(`body`, `name`, `memory`);\n".}
+  {.emit: "if(_.isString(r)) `result` = { Field0: 0, Field1: r}; else `result` = { Field0: r, Field1: ''};".}
+  {.emit: "\n}\n".}
 
 proc describeExits*(map: Map, roomName: cstring): JSAssoc[cstring, cstring] {.importcpp.}
 #  {.emit: "`map`.describeExits(`roomName`)\n".}

@@ -55,11 +55,13 @@ template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
   if room.energyAvailable >= body.calcEnergyCost:
       for spawn in spawns:
         let rm = CreepMemory(role: newRole, refilling: true, action: Idle)
-        var name = spawn.createCreep(body, nil, rm)
-        if name != "":
-          log "New " & roleName & name & " is spawning"
+        let (ret, name) = spawn.createCreep(body, nil, rm)
+        if ret == OK:
+          log "New " & roleName & " " & name & " is spawning"
           dec needCreeps
           break
+        else:
+          log "Trying to spawn yields error " & ret, error # of course
 
 proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName, globalClaimers: seq[Creep]) =
   # is null for sim
@@ -249,7 +251,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var maxUpgraders = 20
   var minUpgraders = if spawns.len > 0: 2 else: 0
   if stats.uplinkers.len > 0:
-    maxUpgraders = 0
+    maxUpgraders = 4
   #var intrudersDetected = false
 
   # harvesters

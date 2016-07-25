@@ -118,7 +118,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if creep.spawning:
       # still spawning
       continue
-  
+
     var cm = creep.memory.CreepMemory
 
     # if pirateTarget != NOROOM:
