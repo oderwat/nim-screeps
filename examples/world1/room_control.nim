@@ -261,7 +261,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     if claimRoom.controller.my == false:
       wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
 
-  log "want Claimers: " & wantClaimers, debug
+  #log "want Claimers: " & wantClaimers, debug
 
   # charge handling
   var minChargers = 0
