@@ -274,6 +274,9 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
   if minUpgraders > wantWorkers: minUpgraders = wantWorkers
   if maxUpgraders > wantWorkers: maxUpgraders = wantWorkers
 
+  var minBuilders = 0 # normaly none
+  var maxBuilders = 0
+
   var needCreeps = 0
 
   # harvesters
@@ -360,29 +363,35 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
 
   if csites.len > 0:
     # we need at least one builder in this room
+    minBuilders = 1
+    maxBuilders = wantWorkers - minChargers
+    if maxBuilders < 0: maxBuilders = 0
+
     #log "having", csites.len, "construction sites"
     #for site in csites:
     #  log site.id, " ", site.progressTotal - site.progress
 
     # shrink the number of repair sites to 4
-    if csites.len > 2:
-      csites = csites[0..2]
+    if csites.len > 4:
+      csites = csites[0..4]
+      minBuilders = 2
+
 
     #for site in csites:
     #  log site.id, site.progressTotal - site.progress, site.structureType
 
-    if rstats.building.len < 6: # never more than 6
+    if rstats.building.len < minBuilders:
 
-      if rstats.idle.len > 0:
+      if rstats.idle.len > 0 and rstats.building.len < maxBuilders:
         changeActionToClosest(rstats, Idle, Build, csites)
 
-      elif rstats.upgrading.len > 0 and rstats.upgrading.len > minUpgraders:
+      elif rstats.upgrading.len > 0 and rstats.upgrading.len > minUpgraders and rstats.building.len < maxBuilders:
         changeActionToClosest(rstats, Upgrade, Build, csites)
 
-      elif rstats.charging.len > 4:
+      elif rstats.charging.len > minChargers and rstats.building.len < maxBuilders:
         changeActionToClosest(rstats, Charge, Build, csites)
 
-      elif rstats.building.len < 3 and rstats.repairing.len > 3:
+      elif rstats.building.len < minBuilders and rstats.repairing.len > 0:
         changeActionToClosest(rstats, Repair, Build, csites)
 
   elif rstats.building.len > 0:
@@ -393,7 +402,7 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
   if totalEnergyNeeded.len > 0 and rstats.charging.len < maxChargers:
     # prioritized answers
     var needEnergy = energyNeeded(room)
-    log "changing to chargers / needEnergy: " & needEnergy.len, debug
+    #log "changing to chargers / needEnergy: " & needEnergy.len, debug
 
     if rstats.idle.len > 0:
       changeActionToClosest(rstats, Idle, Charge, needEnergy)
@@ -408,8 +417,8 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
       changeActionToClosest(rstats, Repair, Charge, needEnergy)
 
   # we stop repairs if creeps are needed and there are to few chargers yet
-  if clevel >= 2 and needCreeps == 0 and rstats.charging.len > minChargers:
-    handleRepairs(room, creeps, rstats)
+  if clevel >= 2 and needCreeps == 0 and rstats.charging.len >= minChargers:
+    handleRepairs(room, creeps, rstats, minUpgraders, minChargers, minBuilders)
 
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and

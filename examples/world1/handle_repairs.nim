@@ -10,7 +10,7 @@ import types
 import utils_stats
 import sequtils
 
-proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats) =
+proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgraders: int, minChargers: int, minBuilders: int) =
   var hitsmissing = 0
   proc checkHits(s: Structure): bool =
     # calc how much hits we are missing with thresholds
@@ -26,7 +26,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats) =
       false #s.hits < 10000
 
   var repairs = room.find(Structure, checkHits)
-  log "repairs needed total: " & repairs.len, debug
+  log "repairs needed total: " & repairs.len & " hitsmissing: " & hitsmissing, debug
 
   # sort by structures with fewest health
   repairs.sort() do (a, b: Structure) -> int:
@@ -49,13 +49,13 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats) =
       if rstats.idle.len > 0:
         changeAction(rstats, Idle, Repair)
 
-      elif rstats.upgrading.len > 2:
+      elif rstats.upgrading.len > minUpgraders:
         changeAction(rstats, Upgrade, Repair)
 
-      elif rstats.building.len > 3:
+      elif rstats.building.len > minBuilders:
         changeAction(rstats, Build, Repair)
 
-      elif rstats.charging.len > 4:
+      elif rstats.charging.len > minChargers:
         changeAction(rstats, Charge, Repair)
 
     if hitsmissing == 0 and rstats.repairing.len > 1:
