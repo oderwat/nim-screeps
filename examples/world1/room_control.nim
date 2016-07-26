@@ -256,15 +256,25 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
   let wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
 
   # charge handling
-  var minChargers = if totalEnergyNeeded.len <= 3: 1 else: totalEnergyNeeded.len div 6
-  var maxChargers = if totalEnergyNeeded.len <= 3: 3 else: totalEnergyNeeded.len div 2
+  var minChargers = 0
+  var maxChargers = 0
+  if totalEnergyNeeded.len > 0:
+    minChargers = if totalEnergyNeeded.len <= 6: 1 else: totalEnergyNeeded.len div 6
+    maxChargers = if totalEnergyNeeded.len <= 2: 1 else: totalEnergyNeeded.len div 2
+    # max what we have though
+    if minChargers > wantWorkers: minChargers = wantWorkers
+    if maxChargers > wantWorkers: maxChargers = wantWorkers
 
-  var needCreeps = 0
-  var maxUpgraders = 20
+  var maxUpgraders = 6
   var minUpgraders = if spawns.len > 0: 2 else: 0
   if rstats.uplinkers.len > 0:
     maxUpgraders = 4
-  #var intrudersDetected = false
+    minUpgraders = 0 # not needed anymore
+
+  if minUpgraders > wantWorkers: minUpgraders = wantWorkers
+  if maxUpgraders > wantWorkers: maxUpgraders = wantWorkers
+
+  var needCreeps = 0
 
   # harvesters
   if rstats.harvesters.len < wantHarvesters:
@@ -374,42 +384,39 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
 
       elif rstats.building.len < 3 and rstats.repairing.len > 3:
         changeActionToClosest(rstats, Repair, Build, csites)
+
   elif rstats.building.len > 0:
     changeAction(rstats, Build, Idle)
 
-  if rstats.uplinkers.len > 0:
-    minChargers = totalEnergyNeeded.len
-    maxChargers = totalEnergyNeeded.len
-
-  #log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
+  log "minChg: " &  minChargers & " maxChg: " & maxChargers & " totENeed: " & totalEnergyNeeded.len & " creepNeed: " & needCreeps & " minUpgr: " & minUpgraders & " upgraders: " & rstats.upgrading.len
   #log "needEnergy " & totalEnergyNeeded.len, debug
-  if totalEnergyNeeded.len > 0 and rstats.charging.len < maxChargers: # never less than 2
+  if totalEnergyNeeded.len > 0 and rstats.charging.len < maxChargers:
     # prioritized answers
     var needEnergy = energyNeeded(room)
-    #log "changing to chargers", debug
+    log "changing to chargers / needEnergy: " & needEnergy.len, debug
 
     if rstats.idle.len > 0:
       changeActionToClosest(rstats, Idle, Charge, needEnergy)
 
-    if rstats.upgrading.len > 1 and (needCreeps > 0 or rstats.charging.len < minChargers):
+    if rstats.upgrading.len > 0 and (needCreeps > 0 or rstats.charging.len < minChargers):
       changeActionToClosest(rstats, Upgrade, Charge, needEnergy)
 
-    if rstats.building.len > 0 and (rstats.charging.len < minChargers or rstats.building.len > 3):
+    if rstats.building.len > 0 and (needCreeps > 0 or rstats.charging.len < minChargers):
       changeActionToClosest(rstats, Build, Charge, needEnergy)
 
-  if clevel >= 2:
-    handleRepairs(room, creeps, rstats, needCreeps)
+    if rstats.repairing.len > 0 and (needCreeps > 0 or rstats.charging.len < minChargers):
+      changeActionToClosest(rstats, Repair, Charge, needEnergy)
 
-  # if we have idle creeps let them upgrade
-  if rstats.idle.len > 0 and rstats.upgrading.len < maxUpgraders:
-    changeAction(gstats, Idle, Upgrade)
+  # we stop repairs if creeps are needed and there are to few chargers yet
+  if clevel >= 2 and needCreeps == 0 and rstats.charging.len > minChargers:
+    handleRepairs(room, creeps, rstats)
 
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
     rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
       changeAction(gstats, Charge, Upgrade)
 
-  if rstats.charging.len > minChargers and rstats.upgrading.len < 1:
+  if rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
       changeAction(gstats, Charge, Upgrade)
 
   if rstats.upgrading.len > maxUpgraders:
@@ -417,6 +424,10 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
 
   if rstats.charging.len > maxChargers:
     changeAction(gstats, Charge, Idle)
+
+  # if we have idle creeps let them upgrade
+  if rstats.idle.len > 0 and rstats.upgrading.len < maxUpgraders:
+    changeAction(gstats, Idle, Upgrade)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name

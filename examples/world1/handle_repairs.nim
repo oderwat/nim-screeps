@@ -10,7 +10,7 @@ import types
 import utils_stats
 import sequtils
 
-proc handleRepairs*(room: Room, creeps: seq[Creep], stats: CreepStats, needCreeps: int) =
+proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats) =
   var hitsmissing = 0
   proc checkHits(s: Structure): bool =
     # calc how much hits we are missing with thresholds
@@ -44,23 +44,22 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: CreepStats, needCreep
     #  log site.id, site.hits, site.structureType
 
     # utilize some new creeps if less than 1 or structs < 90% and less than 4
-    if (stats.repairing.len < 1) or
-      (hitsmissing > 0 and stats.repairing.len < 4 and needCreeps == 0): # never more than 4
+    if hitsmissing > 0 and rstats.repairing.len < 4: # never more than 4
 
-      if stats.idle.len > 0:
-        changeAction(stats, Idle, Repair)
+      if rstats.idle.len > 0:
+        changeAction(rstats, Idle, Repair)
 
-      elif stats.upgrading.len > 2:
-        changeAction(stats, Upgrade, Repair)
+      elif rstats.upgrading.len > 2:
+        changeAction(rstats, Upgrade, Repair)
 
-      elif stats.building.len > 3:
-        changeAction(stats, Build, Repair)
+      elif rstats.building.len > 3:
+        changeAction(rstats, Build, Repair)
 
-      elif stats.charging.len > 4:
-        changeAction(stats, Charge, Repair)
+      elif rstats.charging.len > 4:
+        changeAction(rstats, Charge, Repair)
 
-    if (hitsmissing == 0 or needCreeps > 0) and stats.repairing.len > 1:
-        changeAction(stats, Repair, Idle)
+    if hitsmissing == 0 and rstats.repairing.len > 1:
+        changeAction(rstats, Repair, Idle)
 
     for creep in creeps:
       let cm = creep.cmem
@@ -75,5 +74,6 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: CreepStats, needCreep
           creep.say "NoWay!"
           cm.action = Idle
           cm.targetId = nil.ObjId
-  elif stats.repairing.len > 0:
-        changeAction(stats, Repair, Idle)
+
+  elif rstats.repairing.len > 0:
+        changeAction(rstats, Repair, Idle)
