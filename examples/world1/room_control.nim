@@ -68,7 +68,7 @@ template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
         elif ret != ERR_BUSY:
           log "Trying to spawn yields error " & ret, error # of course
 
-proc roomControl*(room: Room, pirateTarget: RoomName) =
+proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
   #for k, v in exits:
@@ -252,8 +252,16 @@ proc roomControl*(room: Room, pirateTarget: RoomName) =
   let wantHarvesters = if clevel >= 2 and containers.len > 0 and rstats.workers.len > 2: sources.len else: 0
   #logH "wantHarvesters: " & wantHarvesters
 
-  # this needs to be done differently (global list of rooms to claim for example)
-  let wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
+  var wantClaimers = 0
+
+  # @Araq: If I take the "RoomName" away the compiler crashes!
+  # was "W39N8".RoomName
+  let claimRoom = game.rooms[claimTarget]
+  if claimRoom != nil:
+    if claimRoom.controller.my == false:
+      wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
+
+  log "want Claimers: " & wantClaimers, debug
 
   # charge handling
   var minChargers = 0

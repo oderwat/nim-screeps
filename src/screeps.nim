@@ -119,7 +119,7 @@ type
     gcl*: GlobalControlLevel
     map*: Map
     market*: pointer
-    rooms*: JSAssoc[cstring, Room]
+    rooms*: JSAssoc[RoomName, Room]
     spawns*: JSAssoc[cstring, StructureSpawn]
     structures*: JSAssoc[cstring, Structure]
     time*: int

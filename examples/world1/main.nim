@@ -22,6 +22,10 @@ import utils_stats
 when not declared(piratetarget):
   const pirateTarget = NOROOM
 
+const claimTarget = "W39N8".RoomName
+when not declared(claimTarget):
+  const claimTarget = NOROOM
+
 import room_control
 
 import role_worker
@@ -90,7 +94,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
           cm.sourceId = sources[idx mod sources.len].id
           inc idx
     # the main room controler logic
-    roomControl(room, pirateTarget)
+    roomControl(room, pirateTarget, claimTarget)
 
   var minTicks = 999999
   # let the creeps do their jobs
@@ -103,7 +107,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     of Worker: creep.roleWorker
     of Defender: creep.roleDefender
     of Pirate: creep.rolePirate pirateTarget
-    of Claimer: creep.roleClaimer
+    of Claimer: creep.roleClaimer claimTarget
     of Harvester: creep.roleHarvester
     of Hauler: creep.roleHauler
     of Uplinker: creep.roleUplinker

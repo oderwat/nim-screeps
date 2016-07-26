@@ -7,9 +7,7 @@ import screeps
 import screeps_utils
 import types
 
-const claimRoom = "W39N8".RoomName
-
-proc roleClaimer*(creep: Creep) =
+proc roleClaimer*(creep: Creep, claimRoom: RoomName) =
   let controller = creep.room.controller
   if controller.my:
     discard creep.travel(claimRoom)
