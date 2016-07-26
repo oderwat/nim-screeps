@@ -9,7 +9,7 @@ import screeps
 import types
 
 proc roleHealer*(creep: Creep) =
-  #var cm = creep.memory.CreepMemory
+  #var cm = creep.cmem
   #var friendly = creep.room.findMy(CREEP)
   #creep.moveTo(game.flags.?Flag1)
 
@@ -24,6 +24,5 @@ proc roleHealer*(creep: Creep) =
         creep.rangedHeal target
   else:
     let target = creep.pos.findMyClosestByRange(Creep) do(creep: Creep) -> bool:
-      let cm = creep.memory.CreepMemory
-      cm.role == Pirate
+      creep.cmem.role == Pirate
     discard target

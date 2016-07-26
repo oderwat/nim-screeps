@@ -10,7 +10,7 @@ import types
 import utils_stats
 import sequtils
 
-proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps: int) =
+proc handleRepairs*(room: Room, creeps: seq[Creep], stats: CreepStats, needCreeps: int) =
   var hitsmissing = 0
   proc checkHits(s: Structure): bool =
     # calc how much hits we are missing with thresholds
@@ -63,17 +63,17 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], stats: var Stats, needCreeps
         changeAction(stats, Repair, Idle)
 
     for creep in creeps:
-      let m = creep.memory.CreepMemory
-      if m.action == Repair:
+      let cm = creep.cmem
+      if cm.action == Repair:
         var closest = creep.pos.findClosestByPath(repairs)
         if closest != nil:
-          if m.targetId != closest.id:
+          if cm.targetId != closest.id:
             creep.say "R" & closest.pos.at
-            m.targetId = closest.id
+            cm.targetId = closest.id
         else:
           log "no closest for " & creep.name & "?"
           creep.say "NoWay!"
-          m.action = Idle
-          m.targetId = nil.ObjId
+          cm.action = Idle
+          cm.targetId = nil.ObjId
   elif stats.repairing.len > 0:
         changeAction(stats, Repair, Idle)

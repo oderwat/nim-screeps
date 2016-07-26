@@ -8,7 +8,7 @@ import types
 
 proc handleLink*(link: StructureLink) =
   var sourceLink = false
-  var rm = link.room.memory.RoomMemory
+  var rm = link.room.rmem
   for t in rm.sourceLinks:
     if link.id == t:
       sourceLink = true

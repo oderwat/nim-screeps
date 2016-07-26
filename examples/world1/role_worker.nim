@@ -8,7 +8,7 @@ import screeps_utils
 import types
 
 proc roleWorker*(creep: Creep) =
-  var cm = creep.memory.CreepMemory # convert
+  var cm = creep.cmem
 
   # so we can act on the same tick
   if creep.carry.energy == 0 and not cm.refilling:

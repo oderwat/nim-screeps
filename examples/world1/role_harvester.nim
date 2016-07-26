@@ -9,7 +9,7 @@ import types
 import math
 
 proc roleHarvester*(creep: Creep) =
-  var cm = creep.memory.CreepMemory # convert
+  let cm = creep.cmem
 
   # setup
   if cm.sourceId == nil:
@@ -22,10 +22,11 @@ proc roleHarvester*(creep: Creep) =
           structure.structureType == STRUCTURE_TYPE_LINK
       if near != nil and not source.pos.inRangeTo(near,2): continue # no? check the next source
 
-      let harvesters = creep.room.memory.RoomMemory.stats.harvesters
+      let harvesters = creep.rmem.creepStats.harvesters
       var freeSource = true
       for harvester in harvesters:
-        if source.id == harvester.memory.CreepMemory.sourceId:
+        if harvester == nil: continue
+        if source.id == harvester.cmem.sourceId:
           freeSource = false
       if freeSource:
         cm.sourceId = source.id
@@ -75,7 +76,7 @@ proc roleHarvester*(creep: Creep) =
 
       if target != nil:
         cm.targetId = target.id
-        var rm = target.room.memory.RoomMemory
+        var rm = target.room.rmem
         # we automatically store what are source containers and links
         if target.structureType == STRUCTURE_TYPE_CONTAINER:
           rm.sourceContainers.uniqueAdd target.id

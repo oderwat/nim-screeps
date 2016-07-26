@@ -59,17 +59,22 @@ template mySpawn(newRole: Roles, body: seq[BodyPart], needCreeps) =
         if ret == OK:
           log "New " & roleName & " " & name & " is spawning"
           dec needCreeps
+          # need to update the stats immediatly
+          # but we do not have a real entry for them this tick so I fake one
+          room.rmem.creepStats.add rm, nil
+          gmem.creepStats.add rm, nil
           break
-        else:
+
+        elif ret != ERR_BUSY:
           log "Trying to spawn yields error " & ret, error # of course
 
-proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName, globalClaimers: seq[Creep]) =
+proc roomControl*(room: Room, pirateTarget: RoomName) =
   # is null for sim
   #let exits = game.map.describeExits(room.name)
   #for k, v in exits:
   #  echo "Exit: ", k, " > ", v
 
-  var rm = room.memory.RoomMemory
+  var rm = room.rmem
   if rm.sourceContainers == nil:
     rm.sourceContainers = @[]
   if rm.sourceLinks == nil:
@@ -102,9 +107,8 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   let links = room.find(StructureLink) do(a: Structure) -> bool:
     a.structureType == STRUCTURE_TYPE_LINK
 
-  var stats = creeps.stats()
-
-  room.memory.RoomMemory.stats = stats
+  # initisl creepStats for the room
+  room.rmem.creepStats = creeps.stats()
 
   let totalEnergyNeeded = energyNeededTotal(room)
 
@@ -151,7 +155,11 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
           dec wantImigrants
           log creep.name & " was hired"
 
-      stats = creeps.stats()
+      # this recalculates and replaces
+      # the creepStats objects when
+      # emigration hit our system
+      room.rmem.creepStats = creeps.stats()
+      gmem.creepStats = game.creeps.stats()
 
   var idx = 0
   for creep in creeps:
@@ -161,6 +169,10 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
       inc idx
       if cm.sourceId == nil:
         cm.sourceId = sources[idx mod sources.len].id
+
+  # this is the real current creepStats after possible migrations
+  let rstats = room.rmem.creepStats
+  let gstats = gmem.creepStats
 
   var workBody: seq[BodyPart]
   var fightBody: seq[BodyPart]
@@ -202,7 +214,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   #  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
-  if room.energyCapacityAvailable < 450 or stats.workers.len < 2:
+  if room.energyCapacityAvailable < 450 or rstats.workers.len < 2:
     #body = @[WORK, WORK, CARRY, MOVE]
     workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
@@ -232,12 +244,12 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
 
-  let wantWorkers = if stats.uplinkers.len > 0: 3 else: 5
+  let wantWorkers = if rstats.uplinkers.len > 0: 3 else: 5
   let wantDefenders = if clevel >= 4: 0 else: 0
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough
-  let wantHarvesters = if clevel >= 2 and containers.len > 0 and stats.workers.len > 2: sources.len else: 0
+  let wantHarvesters = if clevel >= 2 and containers.len > 0 and rstats.workers.len > 2: sources.len else: 0
   #logH "wantHarvesters: " & wantHarvesters
 
   # this needs to be done differently (global list of rooms to claim for example)
@@ -250,45 +262,45 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   var needCreeps = 0
   var maxUpgraders = 20
   var minUpgraders = if spawns.len > 0: 2 else: 0
-  if stats.uplinkers.len > 0:
+  if rstats.uplinkers.len > 0:
     maxUpgraders = 4
   #var intrudersDetected = false
 
   # harvesters
-  if stats.harvesters.len < wantHarvesters:
-    needCreeps += wantHarvesters - stats.harvesters.len
+  if rstats.harvesters.len < wantHarvesters:
+    needCreeps += wantHarvesters - rstats.harvesters.len
     # if we have some workers (for charging) we prefer new harvesters
     mySpawn Harvester, harvestBody, needCreeps
 
   # counting of needed creeps is not yet really ok but better than before
-  if stats.workers.len < wantWorkers:
-    needCreeps += wantWorkers - stats.workers.len
+  if rstats.workers.len < wantWorkers:
+    needCreeps += wantWorkers - rstats.workers.len
     mySpawn Worker, workBody, needCreeps
 
-  if stats.defenders.len < wantDefenders:
-    needCreeps += wantDefenders - stats.defenders.len
-    if stats.workers.len >= wantWorkers:
+  if rstats.defenders.len < wantDefenders:
+    needCreeps += wantDefenders - rstats.defenders.len
+    if rstats.workers.len >= wantWorkers:
       mySpawn Defender, fightBody, needCreeps
 
   # we count pirates global (and currently spwan in any room we own)
-  if globalPirates.len < wantPirates:
-    needCreeps += wantPirates - globalPirates.len
-    if stats.workers.len >= wantWorkers:
+  if gstats.pirates.len < wantPirates:
+    needCreeps += wantPirates - gstats.pirates.len
+    if rstats.workers.len >= wantWorkers:
       mySpawn Pirate, pirateBody, needCreeps
 
   # claimers (global)
-  if globalClaimers.len < wantClaimers:
+  if gstats.claimers.len < wantClaimers:
     # if we need more than one we get one out if the oldest has only 100 ticks left
-    if globalClaimers.len == 0 or globalClaimers[0].ticksToLive < 150:
-      needCreeps += wantClaimers - globalClaimers.len
+    if gstats.claimers.len == 0 or gstats.claimers[0].ticksToLive < 150:
+      needCreeps += wantClaimers - gstats.claimers.len
       mySpawn Claimer, claimBody, needCreeps
 
-  if stats.haulers.len < wantHaulers:
-    needCreeps += wantHaulers - stats.haulers.len
+  if rstats.haulers.len < wantHaulers:
+    needCreeps += wantHaulers - rstats.haulers.len
     mySpawn Hauler, haulBody, needCreeps
 
-  if stats.uplinkers.len < wantUplinkers:
-    needCreeps += sources.len - stats.harvesters.len
+  if rstats.uplinkers.len < wantUplinkers:
+    needCreeps += sources.len - rstats.harvesters.len
     mySpawn Uplinker, uplinkBody, needCreeps
 
   for spawn in spawns:
@@ -349,62 +361,62 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
     #for site in csites:
     #  log site.id, site.progressTotal - site.progress, site.structureType
 
-    if stats.building.len < 6: # never more than 6
+    if rstats.building.len < 6: # never more than 6
 
-      if stats.idle.len > 0:
-        changeActionToClosest(stats, Idle, Build, csites)
+      if rstats.idle.len > 0:
+        changeActionToClosest(rstats, Idle, Build, csites)
 
-      elif stats.upgrading.len > 0 and stats.upgrading.len > minUpgraders:
-        changeActionToClosest(stats, Upgrade, Build, csites)
+      elif rstats.upgrading.len > 0 and rstats.upgrading.len > minUpgraders:
+        changeActionToClosest(rstats, Upgrade, Build, csites)
 
-      elif stats.charging.len > 4:
-        changeActionToClosest(stats, Charge, Build, csites)
+      elif rstats.charging.len > 4:
+        changeActionToClosest(rstats, Charge, Build, csites)
 
-      elif stats.building.len < 3 and stats.repairing.len > 3:
-        changeActionToClosest(stats, Repair, Build, csites)
-  elif stats.building.len > 0:
-    changeAction(stats, Build, Idle)
+      elif rstats.building.len < 3 and rstats.repairing.len > 3:
+        changeActionToClosest(rstats, Repair, Build, csites)
+  elif rstats.building.len > 0:
+    changeAction(rstats, Build, Idle)
 
-  if stats.uplinkers.len > 0:
+  if rstats.uplinkers.len > 0:
     minChargers = totalEnergyNeeded.len
     maxChargers = totalEnergyNeeded.len
 
   #log $$minChargers, maxChargers, totalEnergyNeeded.len, needCreeps, stats.upgrading.len
   #log "needEnergy " & totalEnergyNeeded.len, debug
-  if totalEnergyNeeded.len > 0 and stats.charging.len < maxChargers: # never less than 2
+  if totalEnergyNeeded.len > 0 and rstats.charging.len < maxChargers: # never less than 2
     # prioritized answers
     var needEnergy = energyNeeded(room)
     #log "changing to chargers", debug
 
-    if stats.idle.len > 0:
-      changeActionToClosest(stats, Idle, Charge, needEnergy)
+    if rstats.idle.len > 0:
+      changeActionToClosest(rstats, Idle, Charge, needEnergy)
 
-    if stats.upgrading.len > 1 and (needCreeps > 0 or stats.charging.len < minChargers):
-      changeActionToClosest(stats, Upgrade, Charge, needEnergy)
+    if rstats.upgrading.len > 1 and (needCreeps > 0 or rstats.charging.len < minChargers):
+      changeActionToClosest(rstats, Upgrade, Charge, needEnergy)
 
-    if stats.building.len > 0 and (stats.charging.len < minChargers or stats.building.len > 3):
-      changeActionToClosest(stats, Build, Charge, needEnergy)
+    if rstats.building.len > 0 and (rstats.charging.len < minChargers or rstats.building.len > 3):
+      changeActionToClosest(rstats, Build, Charge, needEnergy)
 
   if clevel >= 2:
-    handleRepairs(room, creeps, stats, needCreeps)
+    handleRepairs(room, creeps, rstats, needCreeps)
 
   # if we have idle creeps let them upgrade
-  if stats.idle.len > 0 and stats.upgrading.len < maxUpgraders:
-    changeAction(stats, Idle, Upgrade)
+  if rstats.idle.len > 0 and rstats.upgrading.len < maxUpgraders:
+    changeAction(gstats, Idle, Upgrade)
 
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
-    stats.charging.len > minChargers and stats.upgrading.len < minUpgraders:
-      changeAction(stats, Charge, Upgrade)
+    rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
+      changeAction(gstats, Charge, Upgrade)
 
-  if stats.charging.len > minChargers and stats.upgrading.len < 1:
-      changeAction(stats, Charge, Upgrade)
+  if rstats.charging.len > minChargers and rstats.upgrading.len < 1:
+      changeAction(gstats, Charge, Upgrade)
 
-  if stats.upgrading.len > maxUpgraders:
-    changeAction(stats, Upgrade, Idle)
+  if rstats.upgrading.len > maxUpgraders:
+    changeAction(gstats, Upgrade, Idle)
 
-  if stats.charging.len > maxChargers:
-    changeAction(stats, Charge, Idle)
+  if rstats.charging.len > maxChargers:
+    changeAction(gstats, Charge, Idle)
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name
@@ -427,7 +439,7 @@ proc roomControl*(room: Room, globalPirates: seq[Creep], pirateTarget: RoomName,
   if gm.logStats or gm.cmd == "show stats":
     if gm.cmd == "show stats":
       gm.cmd = nil
-    stats.logInfo globalPirates, globalClaimers
+    rstats.logInfo
 
   # check for dropped resources
   let drops = room.find(Resource)

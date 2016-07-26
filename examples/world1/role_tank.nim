@@ -7,6 +7,6 @@ import screeps
 import types
 
 proc roleTank*(creep: Creep) =
-  #var cm = creep.memory.CreepMemory
+  #var cm = creep.cmem
   #var friendly = creep.room.findMy(CREEP)
   creep.moveTo(game.flags.?Flag1)

@@ -27,7 +27,7 @@ type
     Repair    # 4
     Migrate   # 5
 
-  Stats* = ref object
+  CreepStats* = ref object
     workers*: seq[Creep]
     defenders*: seq[Creep]
     pirates*: seq[Creep]
@@ -54,12 +54,20 @@ type
     imigrant*: bool # are we from a different rooms spawn?
 
   RoomMemory* = ref object of MemoryEntry
-    stats*: Stats
+    creepStats*: CreepStats # contains creeps from this room
     sourceLinks*: seq[ObjId]
     sourceContainers*: seq[ObjId]
 
   GameMemory* = ref object of MemoryObj
+    creepStats*: CreepStats # contains creeps from all rooms
     cmd*: cstring
     logStats*: bool
 
 const NOROOM* = "".RoomName
+
+# some helpers to make it easier to write and read memory access
+
+template gmem*(): GameMemory = GameMemory(memory)
+template rmem*(creep: Creep): RoomMemory = RoomMemory(creep.room.memory)
+template rmem*(room: Room): RoomMemory = RoomMemory(room.memory)
+template cmem*(creep: Creep): CreepMemory = CreepMemory(creep.memory)

@@ -20,7 +20,6 @@ when defined(logext):
     error,
     syntax # don't use yourself. It is used with engine errors
 
-  converter logSeverity(x: LogSeverity): cstring {.importcpp: "#".}
   const colors: array[LogSeverity, cstring] = [
     "".cstring,
     "lightgreen",
@@ -34,10 +33,10 @@ when defined(logext):
       let ii = instantiationInfo(-1)
       let ci: cstring = ii.filename & "/" & ii.line & ": "
       consoleLog ci & "<font color='" & colors[severity] & "' " & """severity="""" &
-        $severity & """"""" & ">" & message & "</font>"
+        $ord(severity) & """"""" & ">" & message & "</font>"
     else:
       consoleLog "<font color='" & colors[severity] & "' " & """severity="""" &
-        $severity & """"""" & ">" & message & "</font>"
+        $ord(severity) & """"""" & ">" & message & "</font>"
 
   template logH*(message: cstring) =
     const highlight = "#ffff00".cstring

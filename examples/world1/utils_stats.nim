@@ -7,48 +7,33 @@ import screeps
 import screeps_utils
 import types
 
-proc stats*(creeps: seq[Creep]): Stats =
-  result = new Stats
+proc add*(stats: CreepStats, cm: CreepMemory, creep: Creep) =
+  case cm.role:
+  of Worker:
+    stats.workers.add creep
+    case cm.action:
+    of Charge: stats.charging.add creep
+    of Build: stats.building.add creep
+    of Upgrade: stats.upgrading.add creep
+    of Repair: stats.repairing.add creep
+    of Migrate: stats.migrating.add creep
+    of Idle: stats.idle.add creep
+    if cm.refilling: stats.refilling.add creep
+  of Defender:stats.defenders.add creep
+  of Pirate:stats.pirates.add creep
+  of Claimer:stats.claimers.add creep
+  of Harvester:stats.harvesters.add creep
+  of Hauler:stats.haulers.add creep
+  of Uplinker:stats.uplinkers.add creep
+  of Healer: discard
+  of Tank: discard
+
+proc stats*(creeps: seq[Creep] | JSAssoc[cstring, Creep]): CreepStats =
+  result = new CreepStats
   for creep in creeps:
-    let cm = creep.memory.CreepMemory
-    if cm.role == Worker:
-      result.workers.add creep
-      if cm.action == Charge:
-        result.charging.add creep
-      elif cm.action == Build:
-        result.building.add creep
-      elif cm.action == Upgrade:
-        result.upgrading.add creep
-      elif cm.action == Repair:
-        result.repairing.add creep
-      elif cm.action == Migrate:
-        result.migrating.add creep
-      elif cm.action == Idle:
-        result.idle.add creep
-      else:
-        result.error.add creep
-      if cm.refilling:
-        result.refilling.add creep
+    result.add creep.cmem, creep
 
-    elif cm.role == Defender:
-      result.defenders.add creep
-
-    elif cm.role == Pirate:
-      result.pirates.add creep
-
-    elif cm.role == Claimer:
-      result.claimers.add creep
-
-    elif cm.role == Harvester:
-      result.harvesters.add creep
-
-    elif cm.role == Hauler:
-      result.haulers.add creep
-
-    elif cm.role == Uplinker:
-      result.uplinkers.add creep
-
-proc actionToSeq*(stats: Stats, action: Actions): seq[Creep] =
+proc actionToSeq*(stats: CreepStats, action: Actions): seq[Creep] =
   case action:
     of Idle: return stats.idle
     of Charge: return stats.charging
@@ -79,7 +64,7 @@ proc `$$`*(role: Roles): cstring =
   elif role == Claimer: "claimer".cstring
   else: "unknown".cstring
 
-proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
+proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
   var
     src = actionToSeq(stats, srcAction)
     dst = actionToSeq(stats, dstAction)
@@ -89,9 +74,10 @@ proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
     dstlen = dst.len
 
   for idx, creep in src:
-    var m = creep.memory.CreepMemory
-    m.action = dstAction
-    m.targetId = nil.ObjId # no target (yet)
+    if creep == nil: continue # new spawns
+    let cm = creep.cmem
+    cm.action = dstAction
+    cm.targetId = nil.ObjId # no target (yet)
     dst.add creep
     src.del idx
     break
@@ -102,7 +88,7 @@ proc changeAction*(stats: Stats, srcAction: Actions, dstAction: Actions) =
     log "CA error dst " & dst.len & " " & dstlen
 
 
-proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
+proc changeActionToClosest*(stats: CreepStats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
   var
     src = actionToSeq(stats, srcAction)
     dst = actionToSeq(stats, dstAction)
@@ -112,15 +98,16 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     dstlen = dst.len
 
   for idx, creep in src:
+    if creep == nil: continue # new spawns
     var closest = creep.pos.findClosestByPath(targets)
     if closest != nil:
-      var m = creep.memory.CreepMemory
-      m.action = dstAction
+      let cm = creep.cmem
+      cm.action = dstAction
       dst.add creep
       src.del idx
-      if m.targetId != closest.id:
+      if cm.targetId != closest.id:
         creep.say dstAction.short & closest.pos.at
-        m.targetId = closest.id
+        cm.targetId = closest.id
       break
 
   if srclen - 1 != src.len:
@@ -129,19 +116,19 @@ proc changeActionToClosest*(stats: Stats, srcAction: Actions, dstAction: Actions
     log "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
 
 
-proc logInfo*(stats: Stats, globalPirates: seq[Creep], globalClaimers: seq[Creep]) =
+proc logInfo*(stats: CreepStats) =
+  let gstats = memory.GameMemory.creepStats
   log "wrk: " & stats.workers.len & " " &
     "def: " & stats.defenders.len & " " &
-    "pir: " & stats.pirates.len & " (" & globalPirates.len & ") " &
+    "pir: " & stats.pirates.len & " (" & gstats.pirates.len & ") " &
     "chg: " & stats.charging.len & " " &
     "bld: " & stats.building.len & " " &
     "upg: " & stats.upgrading.len & " " &
     "rep: " & stats.repairing.len & " " &
     "idl: " & stats.idle.len & " " &
     "ref: " & stats.refilling.len & " " &
-    "cla: " & globalClaimers.len & " " &
+    "cla: " & stats.claimers.len & " (" & gstats.claimers.len & ") " &
     "hvs: " & stats.harvesters.len & " " &
     "upl: " & stats.uplinkers.len & " " &
     "hau: " & stats.haulers.len & " " &
-    "mig: " & stats.migrating.len & " " &
-    "err: " & stats.error.len, debug
+    "mig: " & stats.migrating.len & " "

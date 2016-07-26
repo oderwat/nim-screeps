@@ -57,36 +57,19 @@ screepsLoop: # this conaints the main loop which is exported to the game
       var init: RoomMemory
       memory.rooms[name] = init
 
-  var deads = 0
   var redistribute = false # when workers die
   # Delete for dead creeps from memory
   # Watch out: A new spawn appears first in memory, then in game
   # be careful not to delete memory for your "next" creep
   for name in keys(memory.creeps):
-    #echo "memory: ", name
-    #dump game.creeps[name]
     if not game.creeps.hasKey name:
-      #var creepsmem = memory.creepsMem(CreepMemory)
       if memory.creeps[name].CreepMemory.role == Worker:
         redistribute = true
       memory.creeps.delete name
-      inc deads
       log "Clearing non-existing creep memory: " & name
 
-  if deads > 0:
-    log "R.I.P. " & deads
-
   # we need to handle pirates and claimers global
-  var pirates: seq[Creep] = @[]
-  var claimers: seq[Creep] = @[]
-  for creep in game.creeps:
-    let cm = creep.memory.CreepMemory
-    case cm.role:
-      of Pirate:
-        pirates.add creep
-      of Claimer:
-        claimers.add creep
-      else: discard
+  gmem.creepStats = game.creeps.stats()
 
   #
   # Running some tasks and the room Controller for each room we pocess
@@ -102,61 +85,30 @@ screepsLoop: # this conaints the main loop which is exported to the game
       let creeps = room.findMy(Creep)
       var idx = 0
       for creep in creeps:
-        let cm = creep.memory.CreepMemory
+        let cm = creep.cmem
         if cm.role == Worker:
           cm.sourceId = sources[idx mod sources.len].id
           inc idx
     # the main room controler logic
-    roomControl(room, pirates, pirateTarget, claimers)
+    roomControl(room, pirateTarget)
 
   var minTicks = 999999
   # let the creeps do their jobs
   for creep in game.creeps:
+    if creep.spawning: continue # still spawning
     if creep.ticksToLive < minTicks:
       minTicks = creep.ticksToLive
 
-    if creep.spawning:
-      # still spawning
-      continue
+    case creep.cmem.role:
+    of Worker: creep.roleWorker
+    of Defender: creep.roleDefender
+    of Pirate: creep.rolePirate pirateTarget
+    of Claimer: creep.roleClaimer
+    of Harvester: creep.roleHarvester
+    of Hauler: creep.roleHauler
+    of Uplinker: creep.roleUplinker
+    of Tank: creep.roleTank
+    of Healer: creep.roleHealer
 
-    var cm = creep.memory.CreepMemory
-
-    # if pirateTarget != NOROOM:
-    #   if cm.role == Defender:
-    #     cm.action = Charge
-    #     cm.role = Pirate
-    # elif cm.role == Pirate and cm.action == Charge:
-    #     cm.role = Defender # going home
-
-    case cm.role:
-      of Worker:
-        creep.roleWorker
-        #creep.say actionNames[cm.action.int].cstring
-      of Defender:
-        #creep.rolePirate pirateTarget
-        creep.roleDefender
-        #creep.say "Defender"
-      of Pirate:
-        creep.rolePirate pirateTarget
-        #creep.say "Hoho!"
-      of Claimer:
-        creep.roleClaimer
-        #creep.say "JoinMe!"
-      of Harvester:
-        creep.roleHarvester
-        #creep.say "Schaffe!"
-      of Hauler:
-        creep.roleHauler
-        #creep.say "Brum!"
-      of Uplinker:
-        creep.roleUplinker
-        #creep.say "Schaffe!"
-      of Tank:
-        creep.roleTank
-        #creep.say "Tank"
-      of Healer:
-        creep.roleHealer
-        #creep.say "Healer"
-
-  if minTicks < 4:
-    log "Next death in " & minTicks & " ticks."
+  #if minTicks < 4:
+  #  log "Next death in " & minTicks & " ticks."

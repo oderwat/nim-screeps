@@ -7,7 +7,7 @@ import screeps
 import types
 
 proc roleHauler*(creep: Creep) =
-  var cm = creep.memory.CreepMemory # convert
+  let cm = creep.cmem
 
   # initial setup for the creep target and source
   if cm.targetId == nil:
@@ -21,9 +21,10 @@ proc roleHauler*(creep: Creep) =
     let source = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
       if structure.structureType != STRUCTURE_TYPE_CONTAINER:
         return false
-      for others in creep.room.memory.RoomMemory.stats.haulers:
+      for others in creep.rmem.creepStats.haulers:
+        if others == nil: continue # skipping spawns first tick
         if others == creep: continue
-        let om = others.memory.CreepMemory
+        let om = others.cmem
         # handled by other hauler already
         if om.sourceId == structure.id:
           return false

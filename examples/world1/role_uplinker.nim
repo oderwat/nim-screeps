@@ -7,7 +7,7 @@ import screeps
 import types
 
 proc roleUplinker*(creep: Creep) =
-  var cm = creep.memory.CreepMemory # convert
+  var cm = creep.cmem
 
   let controller = creep.room.controller
   if controller == nil:

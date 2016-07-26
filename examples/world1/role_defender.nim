@@ -7,7 +7,7 @@ import screeps
 import types
 
 proc roleDefender*(creep: Creep) =
-  #var cm = creep.memory.CreepMemory
+  #var cm = creep.cmem
   # changing role (just a hack now)
   #cm.role = Pirate
 
