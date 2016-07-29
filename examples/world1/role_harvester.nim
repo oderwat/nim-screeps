@@ -43,7 +43,7 @@ proc roleHarvester*(creep: Creep) =
         if near != nil and not source.pos.inRangeTo(near,2): continue # no? check the next source
 
         if creep.carryCapacity == 0:
-          log "harvester without carry but not container", error
+          log "harvester without carry can't build its own container :(", error
           return
 
         log "Harvester " & creep.name & " builds its own container"

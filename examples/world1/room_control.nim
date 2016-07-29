@@ -113,9 +113,9 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   let totalEnergyNeeded = energyNeededTotal(room)
 
   var wantImigrants = 0
-  if room.name != "W39N7".RoomName:
+  if room.name == "W39N8".RoomName and clevel < 4:
     # do we want imigrant workers?
-    wantImigrants = 0
+    wantImigrants = 4
 
   if wantImigrants > 0:
     for creep in creeps:
@@ -130,8 +130,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
         if wantImigrants <= 0:
           break
 
-        # only creeps from our main room
-        if creep.room.name != "W39N7".RoomName:
+        # only creeps from our main rooms
+        if creep.room.name != "W39N7".RoomName and creep.room.name != "W38N7".RoomName:
           continue
 
         if creep.ticksToLive < 1000:
@@ -194,14 +194,6 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   claimBody = @[CLAIM, CLAIM, MOVE]
 
   # bodies for 800 at least
-  # harves body
-  if clevel < 3:
-    # no carry so it only works with containers (not for links)
-    # but there are not links with clevel < 3
-    harvestBody = @[WORK, WORK, WORK, WORK, WORK, MOVE]
-  else:
-    # this also works for links as it can transfer the energy
-    harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
   #uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
   uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
 
@@ -218,17 +210,19 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     #body = @[WORK, WORK, CARRY, MOVE]
     workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
-  elif room.energyCapacityAvailable < 550:
-    # 450 - 550
-    workBody = @[WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
+  elif room.energyCapacityAvailable < 700:
+    # 550 upgrade (level 2)
+    workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]
+
     fightBody = @[MOVE, RANGED_ATTACK]
   elif room.energyCapacityAvailable < 800:
-    # 550 - 800
-    workBody = @[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+    # 600
+    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+    # 550
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
-  elif room.energyCapacityAvailable < 950:
-    # 800
-    workBody = @[WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]
+  elif room.energyCapacityAvailable < 900:
+    # 700
+    workBody = @[WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 600
     fightBody = @[RANGED_ATTACK, MOVE, RANGED_ATTACK]
   else:
@@ -244,13 +238,42 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
 
-  let wantWorkers = if rstats.uplinkers.len > 0: 3 else: 5
+  var wantWorkers = if rstats.uplinkers.len > 0: 3 else: 5
+  if clevel < 4:
+    wantWorkers = 10
+
   let wantDefenders = if clevel >= 4: 0 else: 0
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough
-  let wantHarvesters = if clevel >= 2 and containers.len > 0 and rstats.workers.len > 2: sources.len else: 0
+  let wantHarvesters = if clevel >= 2 and containers.len > 0 and rstats.workers.len >= 2: sources.len else: 0
   #logH "wantHarvesters: " & wantHarvesters
+
+  if wantHarvesters > 0:
+    #log "we want harvesters " & wantHarvesters
+    # harvest body
+    if clevel < 3:
+      # check if we have a container building site near the sources
+      var needCarryOnHarvester = false
+      for source in sources:
+        let near = source.pos.findClosestByPath(ConstructionSite) do(site: ConstructionSite) -> bool:
+          site.structureType == STRUCTURE_TYPE_CONTAINER
+        if near != nil:
+          if not source.pos.inRangeTo(near,2): continue # no? check the next source
+          needCarryOnHarvester = true
+
+      if needCarryOnHarvester:
+        # we need a carry part but only till we build our container
+        harvestBody = @[WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE]
+      else:
+        # no carry so it only works with containers (not for links)
+        # but there are not links with clevel < 3
+        harvestBody = @[WORK, WORK, WORK, WORK, WORK, MOVE]
+
+    else:
+      # this also works for links as it can transfer the energy
+      harvestBody = @[WORK, WORK, WORK, WORK, WORK, CARRY, MOVE]
+
 
   var wantClaimers = 0
 
@@ -273,7 +296,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     if minChargers > wantWorkers: minChargers = wantWorkers
     if maxChargers > wantWorkers: maxChargers = wantWorkers
 
-  var maxUpgraders = 6
+  var maxUpgraders = 10
   var minUpgraders = if spawns.len > 0: 2 else: 0
   if rstats.uplinkers.len > 0:
     maxUpgraders = 4
@@ -375,32 +398,38 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     maxBuilders = wantWorkers - minChargers
     if maxBuilders < 0: maxBuilders = 0
 
+    #log "Max Builder: " & maxBuilders
+
     #log "having", csites.len, "construction sites"
     #for site in csites:
-    #  log site.id, " ", site.progressTotal - site.progress
+    #  log $$site.id & " " & site.structureType & " " & site.progressTotal - site.progress
 
-    # shrink the number of repair sites to 4
+    # shrink the number of build sites to 4
     if csites.len > 4:
       csites = csites[0..4]
       minBuilders = 2
 
-
     #for site in csites:
-    #  log site.id, site.progressTotal - site.progress, site.structureType
+    #  log $$site.id & " " & site.structureType & " " & site.progressTotal - site.progress
 
-    if rstats.building.len < minBuilders:
+    if rstats.building.len < maxBuilders:
 
-      if rstats.idle.len > 0 and rstats.building.len < maxBuilders:
+      if rstats.idle.len > 0:
         changeActionToClosest(rstats, Idle, Build, csites)
 
+      # better build than upgrade
       elif rstats.upgrading.len > 0 and rstats.upgrading.len > minUpgraders and rstats.building.len < maxBuilders:
         changeActionToClosest(rstats, Upgrade, Build, csites)
 
-      elif rstats.charging.len > minChargers and rstats.building.len < maxBuilders:
-        changeActionToClosest(rstats, Charge, Build, csites)
-
-      elif rstats.building.len < minBuilders and rstats.repairing.len > 0:
+      # better build than repair
+      elif rstats.repairing.len > 0 and rstats.building.len < minBuilders:
         changeActionToClosest(rstats, Repair, Build, csites)
+
+      # better charge but have minimum builders
+      elif rstats.charging.len > 0 and
+          ((rstats.charging.len > minChargers and rstats.building.len < minBuilders) or
+          (minChargers == 0 and rstats.building.len < maxBuilders)):
+        changeActionToClosest(rstats, Charge, Build, csites)
 
   elif rstats.building.len > 0:
     changeAction(rstats, Build, Idle)
@@ -479,6 +508,11 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
       let cm = creep.memory.CreepMemory
       # workers only of course
       if cm.role != Worker: return false
+      # todo:
+      # for now we do not use creeps which are currently working
+      # to temporarily fix problems with overflowing containers
+      if cm.refilling == false: return false
+
       let free = creep.carryCapacity - creep.carry.energy
       if free == 0: return false
       #let distance = resource.pos.getRangeTo(creep.pos)
@@ -503,6 +537,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
       log slurper.name & " is Vulture"
       slurper.say "Vulture"
     else:
+      if resource.amount > 500:
+        log "Energy amass laying around"
       log "no slurper"
 
     log "on the floor is " & resource.amount & " of " & resource.resourceType
+
+  log ""

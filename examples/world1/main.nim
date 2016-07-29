@@ -22,7 +22,7 @@ import utils_stats
 when not declared(piratetarget):
   const pirateTarget = NOROOM
 
-const claimTarget = "W39N8".RoomName
+#const claimTarget = "W38N8".RoomName
 when not declared(claimTarget):
   const claimTarget = NOROOM
 
@@ -116,3 +116,4 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
   #if minTicks < 4:
   #  log "Next death in " & minTicks & " ticks."
+  log ""

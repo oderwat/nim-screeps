@@ -10,7 +10,6 @@ import types
 proc add*(stats: CreepStats, cm: CreepMemory, creep: Creep) =
   case cm.role:
   of Worker:
-    stats.workers.add creep
     case cm.action:
     of Charge: stats.charging.add creep
     of Build: stats.building.add creep
@@ -19,12 +18,15 @@ proc add*(stats: CreepStats, cm: CreepMemory, creep: Creep) =
     of Migrate: stats.migrating.add creep
     of Idle: stats.idle.add creep
     if cm.refilling: stats.refilling.add creep
-  of Defender:stats.defenders.add creep
-  of Pirate:stats.pirates.add creep
-  of Claimer:stats.claimers.add creep
-  of Harvester:stats.harvesters.add creep
-  of Hauler:stats.haulers.add creep
-  of Uplinker:stats.uplinkers.add creep
+    # we don't list imigrants as workers anymore
+    if cm.action != Migrate:
+      stats.workers.add creep
+  of Defender: stats.defenders.add creep
+  of Pirate: stats.pirates.add creep
+  of Claimer: stats.claimers.add creep
+  of Harvester: stats.harvesters.add creep
+  of Hauler: stats.haulers.add creep
+  of Uplinker: stats.uplinkers.add creep
   of Healer: discard
   of Tank: discard
 
@@ -56,13 +58,6 @@ proc short*(action: Actions): cstring =
   else:
     log "unsuported change action " & $action, error
     return
-
-proc `$$`*(role: Roles): cstring =
-  if role == Worker: "worker".cstring
-  elif role == Defender: "defender".cstring
-  elif role == Pirate: "pirate".cstring
-  elif role == Claimer: "claimer".cstring
-  else: "unknown".cstring
 
 proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
   var

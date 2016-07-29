@@ -31,7 +31,8 @@ proc uniqueAdd*[T](s: var seq[T], id: T): bool {.discardable.} =
 proc delete*[K,V](d: JSAssoc[K,V]; k: K) {.importcpp: "delete #[#]".}
 proc sort* [T](objs: seq[T], sortcm: proc(a, b: T): int) {.importcpp: "#.sort(#)".}
 
-template `.?`*(a: JSAssoc, f: untyped): auto = a[astToStr(f)]
+template `.?`*(a: JSAssoc, f: untyped): untyped = a[astToStr(f)]
+#template `.?`*[T](a: T, f: untyped): untyped = a[astToStr(f)]
 
 {.push warning[Uninit]:off.}
 iterator pairs*[K,V](d: JSAssoc[K,V]): (K,V) =
