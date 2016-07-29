@@ -99,22 +99,30 @@ proc roleHarvester*(creep: Creep) =
 
   # Move to the source (or on top of the container)
   if creep.carry.energy < creep.carryCapacity or creep.carryCapacity == 0:
-      # if your target is a container we want to sit on it!
-      if target.structureType == STRUCTURE_TYPE_CONTAINER and
-        not creep.pos.isEqualTo(target.pos):
-        log "Harvester " & creep.name & " moves onto container", debug
-        creep.moveTo(target)
-      else:
-        let source = game.getObjectById(cm.sourceId, Source)
-        let ret = creep.harvest(source)
-        if ret == ERR_NOT_IN_RANGE:
-          log "Harvester " & creep.name & " moves to source", debug
-          creep.moveTo(source)
-        elif ret == ERR_NOT_ENOUGH_ENERGY:
-          creep.say "Empty?"
-        elif ret != OK and ret != ERR_BUSY:
-          creep.say "#?%!"
-          log creep.name & " is lost: " & ret
+    # if your target is a container we want to sit on it!
+    if target.structureType == STRUCTURE_TYPE_CONTAINER and
+      not creep.pos.isEqualTo(target.pos):
+      log "Harvester " & creep.name & " moves onto container", debug
+      creep.moveTo(target)
+    else:
+      let source = game.getObjectById(cm.sourceId, Source)
+
+      # we repair our container / link in between so nobody else need to come over for that
+      if creep.carry.energy >= 5 and target.hits < target.hitsMax - 500: # 1 ticks of 5 work repair
+        log "Harvester " & creep.name & "repairs his target " & target.hits & " / " & target.hitsMax, debug
+        let ret = creep.repair(target)
+        if ret == OK:
+          return
+
+      let ret = creep.harvest(source)
+      if ret == ERR_NOT_IN_RANGE:
+        log "Harvester " & creep.name & " moves to source", debug
+        creep.moveTo(source)
+      elif ret == ERR_NOT_ENOUGH_ENERGY:
+        creep.say "Empty?"
+      elif ret != OK and ret != ERR_BUSY:
+        creep.say "#?%!"
+        log creep.name & " is lost: " & ret
 
   if creep.carry.energy > 0:
     var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)

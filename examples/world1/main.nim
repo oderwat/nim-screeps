@@ -22,7 +22,7 @@ import utils_stats
 when not declared(piratetarget):
   const pirateTarget = NOROOM
 
-#const claimTarget = "W38N8".RoomName
+const claimTarget = "W38N8".RoomName
 when not declared(claimTarget):
   const claimTarget = NOROOM
 

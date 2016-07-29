@@ -84,7 +84,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   var spawns = room.findMy(StructureSpawn)
   if spawns.len == 0:
-    logH "Room has no (owned) spawns"
+    return
+    #logH "Room has no (owned) spawns"
 
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
@@ -113,7 +114,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   let totalEnergyNeeded = energyNeededTotal(room)
 
   var wantImigrants = 0
-  if room.name == "W39N8".RoomName and clevel < 4:
+  if room.name == "W39N8".RoomName and storages.len == 0:
     # do we want imigrant workers?
     wantImigrants = 4
 
@@ -200,7 +201,11 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   # hauling up to 300 energy should be enough
   #haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
   # maybe even 250 is enough. We also move on roads so we need one move less
-  haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+  if room.energyCapacityAvailable < 950:
+    haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]
+  else:
+    haulBody = @[CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY,
+      MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
   #if room.energyCapacityAvailable >= 1150:
   #  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
@@ -279,9 +284,9 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   # @Araq: If I take the "RoomName" away the compiler crashes!
   # was "W39N8".RoomName
-  let claimRoom = game.rooms[claimTarget]
-  if claimRoom != nil:
-    if claimRoom.controller.my == false:
+  if claimTarget != nil and room.name == "W38N7".RoomName:
+    let claimRoom = game.rooms[claimTarget]
+    if claimRoom == nil or claimRoom.controller.my == false:
       wantClaimers = if room.energyCapacityAvailable >= claimBody.calcEnergyCost: 2 else: 0
 
   #log "want Claimers: " & wantClaimers, debug
@@ -335,7 +340,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   # claimers (global)
   if gstats.claimers.len < wantClaimers:
     # if we need more than one we get one out if the oldest has only 100 ticks left
-    if gstats.claimers.len == 0 or gstats.claimers[0].ticksToLive < 150:
+    # in the first "round" claimers[0] may be a spawning claimer which is added as "nil" to the list
+    if gstats.claimers.len == 0 or gstats.claimers[0] != nil and gstats.claimers[0].ticksToLive < 150:
       needCreeps += wantClaimers - gstats.claimers.len
       mySpawn Claimer, claimBody, needCreeps
 
