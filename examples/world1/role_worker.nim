@@ -63,33 +63,42 @@ proc roleWorker*(creep: Creep) =
             cm.sourceId = target.pos.findClosestByPath(Source).id
             useSource = UseSource.always
 
+        var haveStorage: StructureStorage
+        var haveContainer: StructureContainer
+        var haveLink: StructureLink
+
         if useSource == UseSource.check:
           # find a storage... if it has energy go there
-          let storage = creep.pos.findMyClosestByPath(StructureStorage) do(structure: Structure) -> bool:
-            structure.structureType == STRUCTURE_TYPE_STORAGE
+          haveStorage = creep.pos.findClosestByPath(StructureStorage) do(structure: Structure) -> bool:
+            structure.structureType == STRUCTURE_TYPE_STORAGE and
+              structure.StructureStorage.store[RESOURCE_TYPE_ENERGY] > 0
 
-          # we prefer storage energy over containers or harvesting ourselfs
-          if storage != nil and storage.store[RESOURCE_TYPE_ENERGY] > 0:
-            useSource = UseSource.nope
-            let ret = creep.withdraw(storage, RESOURCE_TYPE_ENERGY)
-            if ret == ERR_NOT_IN_RANGE:
-              creep.moveTo(storage)
-            elif ret != OK and ret != ERR_BUSY:
-              creep.say "#?%!"
-              log creep.name & " is lost: " & ret
-
-        if useSource == UseSource.check:
           # find a container... if it has "enough" energy go there
-          let container = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
+          haveContainer = creep.pos.findClosestByPath(StructureContainer) do(structure: Structure) -> bool:
             structure.structureType == STRUCTURE_TYPE_CONTAINER and
               structure.StructureContainer.store[RESOURCE_TYPE_ENERGY] >= creep.carryCapacity
 
+          # find a Link... if it has "enough" energy go there
+          haveLink = creep.pos.findClosestByPath(StructureLink) do(structure: Structure) -> bool:
+            structure.structureType == STRUCTURE_TYPE_LINK and
+              structure.StructureLink.energy >= creep.carryCapacity
+
+          var select: seq[Structure] = @[]
+          if haveStorage != nil: select.add haveStorage.Structure
+          if haveContainer != nil: select.add haveContainer.Structure
+          if haveLink != nil: select.add haveLink.Structure
+
+          # check what is the neares: storage, container or link
+          let nearest = creep.pos.findClosestByPath(select)
+          creep.say nearest.structureType
+
           # we prefer container energy over harvesting ourselfs
-          if container != nil:
+          if nearest != nil:
             useSource = UseSource.nope
-            let ret = creep.withdraw(container, RESOURCE_TYPE_ENERGY)
+            # this is a bold cast ... but works because of javascript
+            let ret = creep.withdraw(nearest.EnergizedStructure, RESOURCE_TYPE_ENERGY)
             if ret == ERR_NOT_IN_RANGE:
-              creep.moveTo(container)
+              creep.moveTo(nearest)
             elif ret != OK and ret != ERR_BUSY:
               creep.say "#?%!"
               log creep.name & " is lost: " & ret

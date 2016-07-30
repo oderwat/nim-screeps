@@ -19,7 +19,8 @@ proc energyNeededTotal(room: Room): auto =
 
     elif struct.structureType == STRUCTURE_TYPE_TOWER:
       let tower = struct.StructureTower
-      result = tower.energy < tower.energyCapacity
+      # we only charge towers if they are below 95%
+      result = tower.energy.float < tower.energyCapacity.float * 0.95
 
     elif struct.structureType == STRUCTURE_TYPE_SPAWN:
       let spawn = struct.StructureSpawn
@@ -41,6 +42,7 @@ proc energyNeeded(room: Room): auto =
   result = room.find(Structure) do (struct: Structure) -> bool:
     if struct.structureType == STRUCTURE_TYPE_TOWER:
       let tower = struct.StructureTower
+      # towers with less than 75% energy become priorities
       return tower.energy.float < tower.energyCapacity.float * 0.75
     return false
 
@@ -459,10 +461,6 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     if rstats.repairing.len > 0 and (needCreeps > 0 or rstats.charging.len < minChargers):
       changeActionToClosest(rstats, Repair, Charge, needEnergy)
 
-  # we stop repairs if creeps are needed and there are to few chargers yet
-  if clevel >= 2 and needCreeps == 0 and rstats.charging.len >= minChargers:
-    handleRepairs(room, creeps, rstats, minUpgraders, minChargers, minBuilders)
-
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
     rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
@@ -476,6 +474,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   if rstats.charging.len > maxChargers:
     changeAction(gstats, Charge, Idle)
+
+  # we stop repairs if creeps are needed and there are to few chargers yet
+  if clevel >= 2 and needCreeps == 0 and rstats.charging.len >= minChargers:
+    handleRepairs(room, creeps, rstats, minUpgraders, minChargers, minBuilders)
 
   # if we have idle creeps let them upgrade
   if rstats.idle.len > 0 and rstats.upgrading.len < maxUpgraders:

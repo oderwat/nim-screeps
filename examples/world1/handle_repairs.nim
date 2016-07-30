@@ -15,7 +15,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
   proc checkHits(s: Structure): bool =
     # calc how much hits we are missing with thresholds
     if s.hitsMax < 6000:
-      if s.hits.float / s.hitsMax.float <= 0.95:
+      if s.hits.float / s.hitsMax.float <= 0.75:
         hitsmissing += s.hitsMax - s.hits
         #log s.hits & " " & s.structureType, debug
       return s.hits < s.hitsMax
@@ -23,6 +23,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
     if s.structureType == STRUCTURE_TYPE_WALL:
       s.hits < (if room.controller.level < 3: 1000 else: 20000)
     else:
+      # remainig stuff gets no repears by creeps (but by towers hopefully)
       false #s.hits < 10000
 
   var repairs = room.find(Structure, checkHits)
@@ -49,16 +50,17 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
       if rstats.idle.len > 0:
         changeAction(rstats, Idle, Repair)
 
-      elif rstats.upgrading.len > minUpgraders:
+      elif rstats.upgrading.len > 0 and rstats.upgrading.len > minUpgraders:
         changeAction(rstats, Upgrade, Repair)
 
-      elif rstats.building.len > minBuilders:
+      elif rstats.building.len > 0 and rstats.building.len > minBuilders:
         changeAction(rstats, Build, Repair)
 
-      elif rstats.charging.len > minChargers:
+      elif rstats.charging.len > 0 and rstats.charging.len > minChargers:
         changeAction(rstats, Charge, Repair)
 
-    if hitsmissing == 0 and rstats.repairing.len > 1:
+    if hitsmissing == 0:
+      while rstats.repairing.len > 1:
         changeAction(rstats, Repair, Idle)
 
     for creep in creeps:
@@ -75,5 +77,6 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
           cm.action = Idle
           cm.targetId = nil.ObjId
 
-  elif rstats.repairing.len > 0:
-        changeAction(rstats, Repair, Idle)
+  else:
+    while rstats.repairing.len > 0:
+      changeAction(rstats, Repair, Idle)
