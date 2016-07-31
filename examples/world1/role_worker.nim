@@ -26,7 +26,6 @@ proc roleWorker*(creep: Creep) =
     cm.refilling = true
 
   if cm.refilling == true:
-
     if creep.carry.energy < creep.carryCapacity:
       if cm.slurpId != nil:
         let resource = game.getObjectById(cm.slurpId, Resource)
@@ -90,10 +89,10 @@ proc roleWorker*(creep: Creep) =
 
           # check what is the neares: storage, container or link
           let nearest = creep.pos.findClosestByPath(select)
-          creep.say nearest.structureType
 
           # we prefer container energy over harvesting ourselfs
           if nearest != nil:
+            creep.say nearest.structureType
             useSource = UseSource.nope
             # this is a bold cast ... but works because of javascript
             let ret = creep.withdraw(nearest.EnergizedStructure, RESOURCE_TYPE_ENERGY)

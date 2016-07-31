@@ -7,6 +7,14 @@ import screeps
 import screeps_utils
 import types
 
+proc dumpCreeps*(creeps: CreepList, label: cstring) =
+  var all = ""
+  for creep in creeps[]:
+    if all != "":
+      all.add ", "
+    all.add creep.name
+  log label & ": " & all, info
+
 proc add*(stats: CreepStats, cm: CreepMemory, creep: Creep) =
   case cm.role:
   of Worker:
@@ -35,14 +43,14 @@ proc stats*(creeps: seq[Creep] | JSAssoc[cstring, Creep]): CreepStats =
   for creep in creeps:
     result.add creep.cmem, creep
 
-proc actionToSeq*(stats: CreepStats, action: Actions): seq[Creep] =
-  case action:
-    of Idle: return stats.idle
-    of Charge: return stats.charging
-    of Repair: return stats.repairing
-    of Build: return stats.building
-    of Upgrade: return stats.upgrading
-    of Migrate: return stats.migrating
+template actionToSeq*(stats: CreepStats, action: Actions): CreepList =
+  (case action:
+    of Idle: stats.idle
+    of Charge: stats.charging
+    of Repair: stats.repairing
+    of Build: stats.building
+    of Upgrade: stats.upgrading
+    of Migrate: stats.migrating)
 
 proc short*(action: Actions): cstring =
   if action == Idle:
@@ -61,54 +69,55 @@ proc short*(action: Actions): cstring =
 
 proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
   var
-    src = actionToSeq(stats, srcAction)
-    dst = actionToSeq(stats, dstAction)
+    src, dst: CreepList
 
-  let
-    srclen = src.len
-    dstlen = dst.len
+  src = actionToSeq(stats, srcAction)
+  dst = actionToSeq(stats, dstAction)
 
-  for idx, creep in src:
+  dumpCreeps(src, "iSrc")
+  dumpCreeps(dst, "iDst")
+
+  for idx, creep in src[]:
     if creep == nil: continue # new spawns
     let cm = creep.cmem
     cm.action = dstAction
     cm.targetId = nil.ObjId # no target (yet)
-    dst.add creep
-    src.del idx
+    dst[].add creep
+    src[].del idx
     break
 
-  if srclen - 1 != src.len:
-    log "CA error src " & src.len & " " & srclen
-  if dstlen + 1 != dst.len:
-    log "CA error dst " & dst.len & " " & dstlen
-
+  dumpCreeps(src, "oSrc")
+  dumpCreeps(dst, "onDst")
 
 proc changeActionToClosest*(stats: CreepStats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
   var
-    src = actionToSeq(stats, srcAction)
-    dst = actionToSeq(stats, dstAction)
+    src, dst: CreepList
 
-  let
-    srclen = src.len
-    dstlen = dst.len
+  src = actionToSeq(stats, srcAction)
+  dst = actionToSeq(stats, dstAction)
 
-  for idx, creep in src:
+  dumpCreeps(src, "iSrc")
+  dumpCreeps(dst, "iDst")
+
+  for idx, creep in src[]:
     if creep == nil: continue # new spawns
     var closest = creep.pos.findClosestByPath(targets)
     if closest != nil:
       let cm = creep.cmem
       cm.action = dstAction
-      dst.add creep
-      src.del idx
+      dst[].add creep
+      src[].del idx
       if cm.targetId != closest.id:
         creep.say dstAction.short & closest.pos.at
         cm.targetId = closest.id
       break
 
-  if srclen - 1 != src.len:
-    log "CC error src " & src.len & " " & srclen & " " & $srcAction
-  if dstlen + 1 != dst.len:
-    log "CC error dst " & dst.len & " " & dstlen & " " & $dstAction
+  dumpCreeps(src, "oSrc")
+  dumpCreeps(dst, "onDst")
+
+  let room = targets[0].room
+  let creeps = room.findMy(Creep)
+  discard stats.check(creeps.stats(), "CC: " & $srcAction & " to " & $dstAction)
 
 
 proc logInfo*(stats: CreepStats) =
@@ -127,3 +136,53 @@ proc logInfo*(stats: CreepStats) =
     "upl: " & stats.uplinkers.len & " " &
     "hau: " & stats.haulers.len & " " &
     "mig: " & stats.migrating.len & " "
+
+proc `check`*(a, b: CreepStats, label: cstring): bool =
+  var errors = 0
+  # testing if a and b have the same number (later maybe id's) of creeps
+  if a.workers.len != b.workers.len:
+    log "Stats (" & label & ") differ for 'workers' " & a.workers.len & " != " & b.workers.len, error
+    inc errors
+  if a.defenders.len != b.defenders.len:
+    log "Stats (" & label & ") differ for 'defenders' " & a.defenders.len & " != " & b.defenders.len, error
+    inc errors
+  if a.pirates.len != b.pirates.len:
+    log "Stats (" & label & ") differ for 'pirates' " & a.pirates.len & " != " & b.pirates.len, error
+    inc errors
+  if a.claimers.len != b.claimers.len:
+    log "Stats (" & label & ") differ for 'claimers' " & a.claimers.len & " != " & b.claimers.len, error
+    inc errors
+  if a.harvesters.len != b.harvesters.len:
+    log "Stats (" & label & ") differ for 'harvesters' " & a.harvesters.len & " != " & b.harvesters.len, error
+    inc errors
+  if a.uplinkers.len != b.uplinkers.len:
+    log "Stats (" & label & ") differ for 'uplinkers' " & a.uplinkers.len & " != " & b.uplinkers.len, error
+    inc errors
+  if a.haulers.len != b.haulers.len:
+    log "Stats (" & label & ") differ for 'haulers' " & a.haulers.len & " != " & b.haulers.len, error
+    inc errors
+  if a.charging.len != b.charging.len:
+    log "Stats (" & label & ") differ for 'charging' " & a.charging.len & " != " & b.charging.len, error
+    inc errors
+  if a.building.len != b.building.len:
+    log "Stats (" & label & ") differ for 'building' " & a.building.len & " != " & b.building.len, error
+    inc errors
+  if a.upgrading.len != b.upgrading.len:
+    log "Stats (" & label & ") differ for 'upgrading' " & a.upgrading.len & " != " & b.upgrading.len, error
+    inc errors
+  if a.repairing.len != b.repairing.len:
+    log "Stats (" & label & ") differ for 'repairing' " & a.repairing.len & " != " & b.repairing.len, error
+    inc errors
+  if a.idle.len != b.idle.len:
+    log "Stats (" & label & ") differ for 'idle' " & a.idle.len & " != " & b.idle.len, error
+    inc errors
+  if a.refilling.len != b.refilling.len:
+    log "Stats (" & label & ") differ for 'refilling' " & a.refilling.len & " != " & b.refilling.len, error
+    inc errors
+  if a.migrating.len != b.migrating.len:
+    log "Stats (" & label & ") differ for 'migrating' " & a.migrating.len & " != " & b.migrating.len, error
+    inc errors
+  if a.error.len != b.error.len:
+    log "Stats (" & label & ") differ for 'error' " & a.error.len & " != " & b.error.len, error
+    inc errors
+  errors > 0

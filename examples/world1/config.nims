@@ -10,7 +10,7 @@ let toolDir = thisDir() / "../../tool"
 let binDir = thisDir() / "../../bin"
 
 --d:logext # we use extened logging
-#--d:logci # logging with caller info (file / line)
+--d:logci # logging with caller info (file / line)
 
 --d:js # so nimsuggest has a clue that we build for js backend
 --d:nodejs

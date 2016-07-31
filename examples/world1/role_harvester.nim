@@ -109,7 +109,7 @@ proc roleHarvester*(creep: Creep) =
 
       # we repair our container / link in between so nobody else need to come over for that
       if creep.carry.energy >= 5 and target.hits < target.hitsMax - 500: # 1 ticks of 5 work repair
-        log "Harvester " & creep.name & "repairs his target " & target.hits & " / " & target.hitsMax, debug
+        log "Harvester " & creep.name & " repairs his target " & target.hits & " / " & target.hitsMax, debug
         let ret = creep.repair(target)
         if ret == OK:
           return

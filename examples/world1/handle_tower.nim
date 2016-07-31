@@ -50,10 +50,10 @@ proc handleTower*(tower: StructureTower) =
           return structure.hits < structure.hitsMax
 
         if structure.structureType == STRUCTURE_TYPE_WALL:
-          return structure.hits < 20000
+          return structure.hits < 100_000
 
         if structure.structureType == STRUCTURE_TYPE_RAMPART:
-          return structure.hits < 50000
+          return structure.hits < 100_000
 
         # keep everyting else at 80 %
         return structure.hits.float / structure.hitsMax.float <= 0.80

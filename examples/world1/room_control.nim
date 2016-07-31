@@ -40,6 +40,16 @@ proc energyNeeded(room: Room): auto =
     return result
 
   result = room.find(Structure) do (struct: Structure) -> bool:
+    if struct.structureType == STRUCTURE_TYPE_EXTENSION:
+      let extension = struct.StructureExtension
+      # extensions should always be full (so we can create creeps if needed)
+      return extension.energy < extension.energyCapacity
+    return false
+
+  if result.len > 0:
+    return result
+
+  result = room.find(Structure) do (struct: Structure) -> bool:
     if struct.structureType == STRUCTURE_TYPE_TOWER:
       let tower = struct.StructureTower
       # towers with less than 75% energy become priorities
@@ -116,7 +126,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   let totalEnergyNeeded = energyNeededTotal(room)
 
   var wantImigrants = 0
-  if room.name == "W39N8".RoomName and storages.len == 0:
+  if room.name == "W39N8".RoomName and clevel < 5:
     # do we want imigrant workers?
     wantImigrants = 4
 
@@ -190,9 +200,9 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   # just for fun :)
   #pirateBody = @[WORK,WORK,WORK,WORK,WORK, WORK, WORK, WORK, WORK, WORK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
   #pirateBody = @[ATTACK, ATTACK, ATTACK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
-  pirateBody = @[ATTACK, ATTACK, MOVE, MOVE, MOVE, ATTACK, MOVE]
+  pirateBody = @[MOVE, MOVE, MOVE, ATTACK, ATTACK, ATTACK, MOVE]
 
-  tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
+  #tankBody = @[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH, MOVE, MOVE, MOVE, MOVE, MOVE]
   healerBody = @[MOVE, MOVE, MOVE, MOVE,HEAL, HEAL]
   claimBody = @[CLAIM, CLAIM, MOVE]
 
@@ -239,7 +249,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     # 900
     workBody = @[WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
     # 740
-    fightBody = @[TOUGH, TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, MOVE]
+    fightBody = @[TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE]
     # 440
     #pirateBody = @[TOUGH, TOUGH, TOUGH, MOVE, MOVE, MOVE, MOVE, ATTACK, ATTACK, MOVE]
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
@@ -249,7 +259,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   if clevel < 4:
     wantWorkers = 10
 
-  let wantDefenders = if clevel >= 4: 0 else: 0
+  let wantDefenders = if clevel >= 4: 3 else: 1
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough
@@ -317,6 +327,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   var needCreeps = 0
 
+  discard rstats.check(creeps.stats(), "start")
+
   # harvesters
   if rstats.harvesters.len < wantHarvesters:
     needCreeps += wantHarvesters - rstats.harvesters.len
@@ -343,7 +355,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   if gstats.claimers.len < wantClaimers:
     # if we need more than one we get one out if the oldest has only 100 ticks left
     # in the first "round" claimers[0] may be a spawning claimer which is added as "nil" to the list
-    if gstats.claimers.len == 0 or gstats.claimers[0] != nil and gstats.claimers[0].ticksToLive < 150:
+    if gstats.claimers.len == 0 or gstats.claimers.first != nil and gstats.claimers.first.ticksToLive < 150:
       needCreeps += wantClaimers - gstats.claimers.len
       mySpawn Claimer, claimBody, needCreeps
 
@@ -367,6 +379,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   if needCreeps > 0:
     log room.name & " needs " & needCreeps & " Creeps", info
+
+  discard rstats.check(creeps.stats(), "spawn")
 
   # Sort by smalles energy cost for finishing construction
   # Extensions are priorised above walls and rampants
@@ -442,6 +456,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   elif rstats.building.len > 0:
     changeAction(rstats, Build, Idle)
 
+  discard rstats.check(creeps.stats(), "build")
+
   log "minChg: " &  minChargers & " maxChg: " & maxChargers & " totENeed: " & totalEnergyNeeded.len & " creepNeed: " & needCreeps & " minUpgr: " & minUpgraders & " upgraders: " & rstats.upgrading.len
   #log "needEnergy " & totalEnergyNeeded.len, debug
   if totalEnergyNeeded.len > 0 and rstats.charging.len < maxChargers:
@@ -461,27 +477,38 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     if rstats.repairing.len > 0 and (needCreeps > 0 or rstats.charging.len < minChargers):
       changeActionToClosest(rstats, Repair, Charge, needEnergy)
 
+  discard rstats.check(creeps.stats(), "charge")
+
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
-    rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
-      changeAction(gstats, Charge, Upgrade)
+    rstats.charging.len > 0 and rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
+      changeAction(rstats, Charge, Upgrade)
 
-  if rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
-      changeAction(gstats, Charge, Upgrade)
+  if rstats.charging.len > 0 and rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
+      changeAction(rstats, Charge, Upgrade)
 
-  if rstats.upgrading.len > maxUpgraders:
-    changeAction(gstats, Upgrade, Idle)
+  if rstats.upgrading.len > 0 and rstats.upgrading.len > maxUpgraders:
+    changeAction(rstats, Upgrade, Idle)
 
-  if rstats.charging.len > maxChargers:
-    changeAction(gstats, Charge, Idle)
+  if rstats.charging.len > 0  and rstats.charging.len > maxChargers:
+    changeAction(rstats, Charge, Idle)
+
+  discard rstats.check(creeps.stats(), "adjust")
 
   # we stop repairs if creeps are needed and there are to few chargers yet
   if clevel >= 2 and needCreeps == 0 and rstats.charging.len >= minChargers:
     handleRepairs(room, creeps, rstats, minUpgraders, minChargers, minBuilders)
 
+  discard rstats.check(creeps.stats(), "repairs")
+
   # if we have idle creeps let them upgrade
   if rstats.idle.len > 0 and rstats.upgrading.len < maxUpgraders:
-    changeAction(gstats, Idle, Upgrade)
+    changeAction(rstats, Idle, Upgrade)
+
+  if rstats.idle.len > 0:
+    log "Still have idles"
+
+  discard rstats.check(creeps.stats(), "end")
 
   #let workers = filterCreeps() do (creep: Creep) -> bool:
   #  #echo creep.name
