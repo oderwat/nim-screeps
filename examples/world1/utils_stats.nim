@@ -43,14 +43,14 @@ proc stats*(creeps: seq[Creep] | JSAssoc[cstring, Creep]): CreepStats =
   for creep in creeps:
     result.add creep.cmem, creep
 
-proc actionToSeq*(stats: CreepStats, action: Actions): ptr CreepList =
+proc actionToSeq*(stats: CreepStats, action: Actions): CreepList =
   case action:
-    of Idle: return stats.idle.addr
-    of Charge: return stats.charging.addr
-    of Repair: return stats.repairing.addr
-    of Build: return stats.building.addr
-    of Upgrade: return stats.upgrading.addr
-    of Migrate: return stats.migrating.addr
+    of Idle: return stats.idle
+    of Charge: return stats.charging
+    of Repair: return stats.repairing
+    of Build: return stats.building
+    of Upgrade: return stats.upgrading
+    of Migrate: return stats.migrating
 
 proc short*(action: Actions): cstring =
   if action == Idle:
@@ -69,72 +69,72 @@ proc short*(action: Actions): cstring =
 
 proc setAction*(creep: Creep, stats: CreepStats, action: Actions) =
   let cm = creep.cmem
-  var src, dst: ptr CreepList
+  var src, dst: CreepList
   src = actionToSeq(stats, cm.action)
   dst = actionToSeq(stats, action)
 
   cm.action = action
   cm.targetId = nil.ObjId # no target (yet)
 
-  dst[].add creep
+  dst.add creep
 
-  for idx, srcCreep in src[]:
+  for idx, srcCreep in src:
     if creep == srcCreep:
-      src[].del idx
+      src.del idx
       return
 
   log "setAction could not find the creep in the src", error
 
 proc changeAllAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
-  var src, dst: ptr CreepList
+  var src, dst: CreepList
   src = actionToSeq(stats, srcAction)
   dst = actionToSeq(stats, dstAction)
 
-  for idx, creep in src[]:
+  for idx, creep in src:
     if creep == nil: continue # new spawns
     let cm = creep.cmem
     cm.action = dstAction
     cm.targetId = nil.ObjId # no target (yet)
-    dst[].add creep
-    src[].del idx
+    dst.add creep
+    src.del idx
 
 proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
   # @araq: gives compiler error when used in one line
-  var src, dst: ptr CreepList
+  var src, dst: CreepList
   src = actionToSeq(stats, srcAction)
   dst = actionToSeq(stats, dstAction)
 
   #dumpCreeps(src[], "iSrc")
   #dumpCreeps(dst[], "iDst")
 
-  for idx, creep in src[]:
+  for idx, creep in src:
     if creep == nil: continue # new spawns
     let cm = creep.cmem
     cm.action = dstAction
     cm.targetId = nil.ObjId # no target (yet)
-    dst[].add creep
-    src[].del idx
+    dst.add creep
+    src.del idx
     break
 
   #dumpCreeps(src[], "oSrc")
   #dumpCreeps(dst[], "onDst")
 
 proc changeActionToClosest*(stats: CreepStats, srcAction: Actions, dstAction: Actions, targets: seq[auto]) =
-  var src, dst: ptr CreepList
+  var src, dst: CreepList
   src = actionToSeq(stats, srcAction)
   dst = actionToSeq(stats, dstAction)
 
   #dumpCreeps(src[], "iSrc")
   #dumpCreeps(dst[], "iDst")
 
-  for idx, creep in src[]:
+  for idx, creep in src:
     if creep == nil: continue # new spawns
     var closest = creep.pos.findClosestByPath(targets)
     if closest != nil:
       let cm = creep.cmem
       cm.action = dstAction
-      dst[].add creep
-      src[].del idx
+      dst.add creep
+      src.del idx
       if cm.targetId != closest.id:
         creep.say dstAction.short & closest.pos.at
         cm.targetId = closest.id

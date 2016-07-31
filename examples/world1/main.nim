@@ -69,7 +69,7 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if not game.creeps.hasKey name:
       if memory.creeps[name].CreepMemory.role == Worker:
         redistribute = true
-      memory.creeps.delete name
+      memory.creeps.del name
       log "Clearing non-existing creep memory: " & name
 
   # we need to handle pirates and claimers global

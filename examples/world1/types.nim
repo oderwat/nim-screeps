@@ -27,7 +27,7 @@ type
     Repair    # 4
     Migrate   # 5
 
-  CreepList* = seq[Creep]
+  CreepList* = JSArray[Creep]
 
   CreepStats* = ref object
     workers*: CreepList
