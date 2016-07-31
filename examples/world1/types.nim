@@ -27,22 +27,24 @@ type
     Repair    # 4
     Migrate   # 5
 
+  CreepList* = seq[Creep]
+
   CreepStats* = ref object
-    workers*: seq[Creep]
-    defenders*: seq[Creep]
-    pirates*: seq[Creep]
-    claimers*: seq[Creep]
-    harvesters*: seq[Creep]
-    uplinkers*: seq[Creep]
-    haulers*: seq[Creep]
-    charging*: seq[Creep]
-    building*: seq[Creep]
-    upgrading*: seq[Creep]
-    repairing*: seq[Creep]
-    idle*: seq[Creep]
-    refilling*: seq[Creep]
-    migrating*: seq[Creep]
-    error*: seq[Creep]
+    workers*: CreepList
+    defenders*: CreepList
+    pirates*: CreepList
+    claimers*: CreepList
+    harvesters*: CreepList
+    uplinkers*: CreepList
+    haulers*: CreepList
+    charging*: CreepList
+    building*: CreepList
+    upgrading*: CreepList
+    repairing*: CreepList
+    idle*: CreepList
+    refilling*: CreepList
+    migrating*: CreepList
+    error*: CreepList
 
   CreepMemory* = ref object of MemoryEntry
     role*: Roles
@@ -71,3 +73,10 @@ template gmem*(): GameMemory = GameMemory(memory)
 template rmem*(creep: Creep): RoomMemory = RoomMemory(creep.room.memory)
 template rmem*(room: Room): RoomMemory = RoomMemory(room.memory)
 template cmem*(creep: Creep): CreepMemory = CreepMemory(creep.memory)
+
+proc first*(creepList: CreepList): Creep =
+  if creepList.len > 0:
+    creepList[0]
+  else:
+    log "trying to get first from 0 len creeplist", error
+    nil

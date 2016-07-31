@@ -21,7 +21,7 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
       return s.hits < s.hitsMax
 
     if s.structureType == STRUCTURE_TYPE_WALL:
-      s.hits < (if room.controller.level < 3: 1000 else: 20000)
+      s.hits < (if room.controller.level < 3: 1_000 else: 100_000)
     else:
       # remainig stuff gets no repears by creeps (but by towers hopefully)
       false #s.hits < 10000
