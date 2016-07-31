@@ -137,7 +137,9 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
         dec wantImigrants
 
     logH "imigration needs: " & wantImigrants
+
     if wantImigrants > 0:
+      var hiredOne = false
       # need to send workers here
       for creep in game.creeps:
         if wantImigrants <= 0:
@@ -159,7 +161,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
           cm.targetId = room.controller.id
           dec wantImigrants
           log creep.name & " is migrating"
-        elif cm.role == Worker:
+        elif cm.role == Worker and not hiredOne:
           # any creep for now
           cm.action = Migrate
           cm.targetId = room.controller.id
@@ -167,6 +169,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
           cm.imigrant = true
           dec wantImigrants
           log creep.name & " was hired"
+          hiredOne = true
+          # only one per room per tick
+          # so not one room is milked for all
+
 
       # this recalculates and replaces
       # the creepStats objects when
@@ -503,8 +509,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   #discard rstats.check(creeps.stats(), "repairs")
 
   # if we have idle creeps let them upgrade (well)
-  while rstats.idle.len > 0: # and rstats.upgrading.len < maxUpgraders:
-    changeAction(rstats, Idle, Upgrade)
+  changeAllAction(rstats, Idle, Upgrade)
 
   # can't happen now
   if rstats.idle.len > 0:

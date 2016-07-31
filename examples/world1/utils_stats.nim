@@ -67,6 +67,37 @@ proc short*(action: Actions): cstring =
     log "unsuported change action " & $action, error
     return
 
+proc setAction*(creep: Creep, stats: CreepStats, action: Actions) =
+  let cm = creep.cmem
+  var src, dst: ptr CreepList
+  src = actionToSeq(stats, cm.action)
+  dst = actionToSeq(stats, action)
+
+  cm.action = action
+  cm.targetId = nil.ObjId # no target (yet)
+
+  dst[].add creep
+
+  for idx, srcCreep in src[]:
+    if creep == srcCreep:
+      src[].del idx
+      return
+
+  log "setAction could not find the creep in the src", error
+
+proc changeAllAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
+  var src, dst: ptr CreepList
+  src = actionToSeq(stats, srcAction)
+  dst = actionToSeq(stats, dstAction)
+
+  for idx, creep in src[]:
+    if creep == nil: continue # new spawns
+    let cm = creep.cmem
+    cm.action = dstAction
+    cm.targetId = nil.ObjId # no target (yet)
+    dst[].add creep
+    src[].del idx
+
 proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
   # @araq: gives compiler error when used in one line
   var src, dst: ptr CreepList

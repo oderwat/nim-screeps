@@ -38,8 +38,8 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
     #log "having", repairs.len, "structures to repair (", hitsmissing, " hits)"
 
     # shrink the number of repair sites to 4
-    if repairs.len > 4:
-      repairs = repairs[0..3]
+    #if repairs.len > 4:
+    #  repairs = repairs[0..3]
 
     #for site in repairs:
     #  log site.id, site.hits, site.structureType
@@ -63,20 +63,19 @@ proc handleRepairs*(room: Room, creeps: seq[Creep], rstats: CreepStats, minUpgra
       while rstats.repairing.len > 1:
         changeAction(rstats, Repair, Idle)
 
-    for creep in creeps:
+    for creep in rstats.repairing:
       let cm = creep.cmem
-      if cm.action == Repair:
-        var closest = creep.pos.findClosestByPath(repairs)
-        if closest != nil:
-          if cm.targetId != closest.id:
-            creep.say "R" & closest.pos.at
-            cm.targetId = closest.id
-        else:
-          log "no closest for " & creep.name & "?"
-          creep.say "NoWay!"
-          cm.action = Idle
-          cm.targetId = nil.ObjId
+      var closest = creep.pos.findClosestByPath(repairs)
+      if closest != nil:
+        if cm.targetId != closest.id:
+          creep.say "R" & closest.pos.at
+          cm.targetId = closest.id
+      else:
+        log "no closest for " & creep.name & "?"
+        #for r in repairs:
+        #  log r.pos.at
+        creep.say "NoWay!"
+        creep.setAction(rstats, Idle)
 
   else:
-    while rstats.repairing.len > 0:
-      changeAction(rstats, Repair, Idle)
+    changeAllAction(rstats, Repair, Idle)
