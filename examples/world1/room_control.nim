@@ -261,7 +261,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     #pirateBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, ATTACK, ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE]
 
 
-  var wantWorkers = if rstats.uplinkers.len > 0: 3 else: 5
+  var wantWorkers = if rstats.uplinkers.len > 0: 4 else: 6
   if clevel < 4:
     wantWorkers = 10
 
