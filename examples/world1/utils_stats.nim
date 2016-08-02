@@ -12,7 +12,10 @@ proc dumpCreeps*(creeps: CreepList, label: cstring) =
   for creep in creeps:
     if all != "":
       all.add ", "
-    all.add creep.name
+    if creep == nil:
+      all.add "NULL"
+    else:
+      all.add creep.name
   log label & ": " & all, info
 
 proc add*(stats: CreepStats, cm: CreepMemory, creep: Creep) =
