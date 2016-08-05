@@ -67,7 +67,7 @@ proc roleHauler*(creep: Creep) =
         creep.moveTo(storage)
       elif ret == OK:
         # search for "another" container (or the same)
-        cm.sourceId = nil.ObjId
+        cm.sourceId = nil
 
       elif ret != OK and ret != ERR_BUSY:
         log creep.name & " is lost: " & ret

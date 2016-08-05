@@ -77,7 +77,7 @@ proc setAction*(creep: Creep, stats: CreepStats, action: Actions) =
   dst = actionToSeq(stats, action)
 
   cm.action = action
-  cm.targetId = nil.ObjId # no target (yet)
+  cm.targetId = nil # no target (yet)
 
   dst[].add creep
 
@@ -97,7 +97,7 @@ proc changeAllAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions)
     if creep == nil: continue # new spawns
     let cm = creep.cmem
     cm.action = dstAction
-    cm.targetId = nil.ObjId # no target (yet)
+    cm.targetId = nil # no target (yet)
     dst[].add creep
     src[].del idx
 
@@ -114,7 +114,7 @@ proc changeAction*(stats: CreepStats, srcAction: Actions, dstAction: Actions) =
     if creep == nil: continue # new spawns
     let cm = creep.cmem
     cm.action = dstAction
-    cm.targetId = nil.ObjId # no target (yet)
+    cm.targetId = nil # no target (yet)
     dst[].add creep
     src[].del idx
     break

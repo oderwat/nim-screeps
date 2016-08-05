@@ -93,8 +93,8 @@ proc roleHarvester*(creep: Creep) =
   if target == nil:
     # recalibrate?
     log "Recalibrate?", error
-    cm.sourceId = nil.ObjId
-    cm.targetId = nil.ObjId
+    cm.sourceId = nil
+    cm.targetId = nil
     return
 
   # Move to the source (or on top of the container)
@@ -128,7 +128,7 @@ proc roleHarvester*(creep: Creep) =
     var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
     if ret == ERR_NOT_FOUND:
       log "Container gone?", error
-      cm.targetId = nil.ObjId
+      cm.targetId = nil
     elif ret == ERR_NOT_IN_RANGE:
       log "Harvester moves "  & creep.name & " to target", debug
       creep.moveTo(target)

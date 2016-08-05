@@ -30,7 +30,7 @@ proc roleWorker*(creep: Creep) =
       if cm.slurpId != nil:
         let resource = game.getObjectById(cm.slurpId, Resource)
         if resource == nil:
-          cm.slurpId = nil.ObjId
+          cm.slurpId = nil
           cm.refilling = false
           creep.say "Gone?"
           log creep.name & " Gone?"
@@ -41,12 +41,12 @@ proc roleWorker*(creep: Creep) =
           elif ret == OK:
             creep.say "Slurped"
             log creep.name  & " Slurped"
-            cm.slurpId = nil.ObjId
+            cm.slurpId = nil
             cm.refilling = false
           elif ret != OK and ret != ERR_BUSY:
             creep.say "Cough"
             log creep.name & " Cough" & ret
-            cm.slurpId = nil.ObjId
+            cm.slurpId = nil
             cm.refilling = false
       else:
         type UseSource {.pure.} = enum
@@ -135,7 +135,7 @@ proc roleWorker*(creep: Creep) =
         if target.energy == target.energyCapacity:
           creep.say("Full?")
           cm.action = Idle
-          cm.targetId = nil.ObjId
+          cm.targetId = nil
         else:
           #echo "Charging: ", target.structureType, at target.pos
           var ret = creep.transfer(target, RESOURCE_TYPE_ENERGY)
@@ -144,11 +144,11 @@ proc roleWorker*(creep: Creep) =
           elif ret == OK:
             creep.say("Better!")
             cm.action = Idle
-            cm.targetId = nil.ObjId
+            cm.targetId = nil
           else:
             creep.say("? " & $ret.int)
             cm.action = Idle
-            cm.targetId = nil.ObjId
+            cm.targetId = nil
 
       of Build:
         var target = game.getObjectById(cm.targetId, ConstructionSite)
@@ -156,7 +156,7 @@ proc roleWorker*(creep: Creep) =
         if ret == OK:
           if target.progress == target.progressTotal:
             creep.say "done"
-            cm.targetId = nil.ObjId
+            cm.targetId = nil
             cm.action = Idle
           #logH "building"
         elif ret == ERR_NOT_IN_RANGE:
@@ -165,7 +165,7 @@ proc roleWorker*(creep: Creep) =
           creep.say ">" & target.pos.at
         else:
           if creep.moveTo(target) == ERR_INVALID_TARGET:
-            cm.targetId = nil.ObjId
+            cm.targetId = nil
             cm.action = Idle
           creep.say "Site?"
           logH "building error: " & ret
@@ -174,10 +174,10 @@ proc roleWorker*(creep: Creep) =
         var target = game.getObjectById(cm.targetId, Structure)
         if creep.repair(target) != OK:
           if creep.moveTo(target) == ERR_INVALID_TARGET:
-            cm.targetId = nil.ObjId
+            cm.targetId = nil
             cm.action = Idle
         elif target.hits == target.hitsMax:
-          cm.targetId = nil.ObjId
+          cm.targetId = nil
           cm.action = Idle
 
       of Upgrade:
@@ -195,8 +195,8 @@ proc roleWorker*(creep: Creep) =
         if creep.room.name == target.pos.roomName:
           cm.action = Idle # let the new room choose what to do
           cm.refilling = false
-          cm.sourceId = nil.ObjId
-          cm.slurpId = nil.ObjId
+          cm.sourceId = nil
+          cm.slurpId = nil
 
           logH "Reached target"
 

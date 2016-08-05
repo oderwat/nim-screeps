@@ -19,7 +19,7 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
     return
 
   let attackWalls = false
-  #let attackTargetId: ObjId = nil.ObjId
+  #let attackTargetId: ObjId = nil
 
   #log creep.name, " in ", creep.room.name
   #log "Have ", hostileCreeps.len, " hostile Creeps"
