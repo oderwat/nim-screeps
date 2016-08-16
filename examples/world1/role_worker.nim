@@ -13,6 +13,12 @@ proc roleWorker*(creep: Creep) =
   # so we can act on the same tick
   if creep.carry.energy == 0 and not cm.refilling:
     creep.say "Empty"
+    # I think I want to add some "reset if we moved more than... logic"
+    if cm.action == Build:
+      cm.targetId = nil # we reset our build target
+    elif cm.action == Repair:
+      cm.targetId = nil # we reset our repair target
+
     # check if we want to continue or kill that creep
     if creep.ticksToLive < 50:
       creep.say "Oh No!"
@@ -185,14 +191,20 @@ proc roleWorker*(creep: Creep) =
           creep.moveTo(creep.room.controller)
 
       of Migrate:
-        let target = game.getObjectById(cm.targetId, Structure)
-        let ret = creep.moveTo(target)
-        if ret == OK:
-          log creep.name & " is traveling to " & target.pos.roomName, info
-        elif ret != ERR_TIRED:
-          log creep.name & " (traveling) error " & ret, info
+        var targetPos: RoomPosition
+        if cm.targetRoom != nil:
+          targetPos = newRoomPosition(25, 25, cm.targetRoom)
+        else:
+          let target = game.getObjectById(cm.targetId, Structure)
+          targetPos = target.pos
 
-        if creep.room.name == target.pos.roomName:
+        let ret = creep.moveTo(targetPos)
+        if ret == OK:
+          log creep.name & " is traveling to " & targetPos.roomName, info
+        elif ret != ERR_TIRED:
+            log creep.name & " (traveling) error " & ret & " " & targetPos.roomName & " " & targetPos.at, info
+
+        if creep.room.name == targetPos.roomName:
           cm.action = Idle # let the new room choose what to do
           cm.refilling = false
           cm.sourceId = nil

@@ -1,6 +1,12 @@
 # nim check --verbosity:2 --hints:off
 #
-# screeputils (test imports)
+# A Part of Screeps Nim module
+#
+# This contains some useful code
+#
+# (c) 2016 by Hans Raaf (METATEXX GmbH)
+#
+
 import screeps
 
 proc transferAllCurrentCarry*(src, dst: Creep): int =

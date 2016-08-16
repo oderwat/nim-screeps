@@ -96,8 +96,8 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   var spawns = room.findMy(StructureSpawn)
   if spawns.len == 0:
-    return
-    #logH "Room has no (owned) spawns"
+    #return
+    logH "Room has no (owned) spawns"
 
   #let cinfo = room.controller.info()
   template clevel: int = room.controller.level
@@ -125,61 +125,6 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
   let totalEnergyNeeded = energyNeededTotal(room)
 
-  var wantImigrants = 0
-  if room.name == "W39N8".RoomName and clevel < 5:
-    # do we want imigrant workers?
-    wantImigrants = 4
-
-  if wantImigrants > 0:
-    for creep in creeps:
-      var cm = creep.memory.CreepMemory
-      if cm.imigrant:
-        dec wantImigrants
-
-    logH "imigration needs: " & wantImigrants
-
-    if wantImigrants > 0:
-      var hiredOne = false
-      # need to send workers here
-      for creep in game.creeps:
-        if wantImigrants <= 0:
-          break
-
-        # only creeps from our main rooms
-        if creep.room.name != "W39N7".RoomName and creep.room.name != "W38N7".RoomName:
-          continue
-
-        if creep.ticksToLive < 1000:
-          # no granies
-          continue
-
-        var cm = creep.memory.CreepMemory
-        # if it is an imigrand .. ok
-        if cm.imigrant:
-          cm.action = Migrate
-          cm.refilling = true
-          cm.targetId = room.controller.id
-          dec wantImigrants
-          log creep.name & " is migrating"
-        elif cm.role == Worker and not hiredOne:
-          # any creep for now
-          cm.action = Migrate
-          cm.targetId = room.controller.id
-          cm.refilling = true
-          cm.imigrant = true
-          dec wantImigrants
-          log creep.name & " was hired"
-          hiredOne = true
-          # only one per room per tick
-          # so not one room is milked for all
-
-
-      # this recalculates and replaces
-      # the creepStats objects when
-      # emigration hit our system
-      room.rmem.creepStats = creeps.stats()
-      gmem.creepStats = game.creeps.stats()
-
   var idx = 0
   for creep in creeps:
     let cm = creep.memory.CreepMemory
@@ -198,7 +143,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   var pirateBody: seq[BodyPart]
   var claimBody: seq[BodyPart]
   var healerBody: seq[BodyPart]
-  var tankBody: seq[BodyPart]
+  #var tankBody: seq[BodyPart]
   var harvestBody: seq[BodyPart]
   var haulBody: seq[BodyPart]
   var uplinkBody: seq[BodyPart]
@@ -229,7 +174,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   #  uplinkBody = @[WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE]
 
   # level 1 or all workers gone, fallback to low energy ones?
-  if room.energyCapacityAvailable < 450 or rstats.workers.len < 2:
+  if room.energyCapacityAvailable < 450 or rstats.workers.len == 0:
     #body = @[WORK, WORK, CARRY, MOVE]
     workBody = @[WORK, CARRY, CARRY, MOVE, MOVE]
     fightBody = @[MOVE, RANGED_ATTACK]
@@ -262,10 +207,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
 
 
   var wantWorkers = if rstats.uplinkers.len > 0: 4 else: 6
-  if clevel < 4:
-    wantWorkers = 10
+  if sources.len == 1:
+    wantWorkers = 3 # trying 3.. was 2 for a while
 
-  let wantDefenders = if clevel >= 4: 3 else: 1
+  let wantDefenders = 2 #if clevel >= 3: 2 else: 1
   let wantPirates = if clevel >= 5: 0 else: 0
   let wantHaulers = if storages.len > 0: containers.len else: 0  # seems to be enough
   let wantUplinkers = if links.len > 0: 2 else: 0 # seems to be enough
@@ -288,6 +233,12 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
       if needCarryOnHarvester:
         # we need a carry part but only till we build our container
         harvestBody = @[WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE]
+      elif room.energyCapacityAvailable <= 300:
+        harvestBody = @[WORK, WORK, MOVE]
+      elif room.energyCapacityAvailable <= 450:
+        harvestBody = @[WORK, WORK, WORK, MOVE]
+      elif room.energyCapacityAvailable <= 550:
+        harvestBody = @[WORK, WORK, WORK, WORK, MOVE]
       else:
         # no carry so it only works with containers (not for links)
         # but there are not links with clevel < 3
@@ -342,7 +293,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     mySpawn Harvester, harvestBody, needCreeps
 
   # counting of needed creeps is not yet really ok but better than before
-  if rstats.workers.len < wantWorkers:
+  if rstats.workers.len < wantWorkers and rstats.harvesters.len >= wantHarvesters:
     needCreeps += wantWorkers - rstats.workers.len
     mySpawn Worker, workBody, needCreeps
 
@@ -403,8 +354,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
       ea = 3
     elif a.structureType == STRUCTURE_TYPE_LINK:
       ea = 2
+    elif a.structureType == STRUCTURE_TYPE_SPAWN:
+      ea = 1
     else:
-      ea = a.progressTotal - a.progress
+      ea = (a.progressTotal - a.progress)+10
 
     if b.structureType == STRUCTURE_TYPE_EXTENSION:
       eb = 6
@@ -416,8 +369,10 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
       eb = 3
     elif b.structureType == STRUCTURE_TYPE_LINK:
       eb = 2
+    elif b.structureType == STRUCTURE_TYPE_SPAWN:
+      eb = 1
     else:
-      eb = b.progressTotal - b.progress
+      eb = (b.progressTotal - b.progress)+10
 
     ea - eb
 
@@ -433,10 +388,18 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
     #for site in csites:
     #  log $$site.id & " " & site.structureType & " " & site.progressTotal - site.progress
 
+    # spawn has highest and ultimate priority
+    if csites[0].structureType == STRUCTURE_TYPE_SPAWN:
+      csites = csites[0..0]
+      minBuilders = 2
+
     # shrink the number of build sites to 4
     if csites.len > 4:
       csites = csites[0..4]
       minBuilders = 2
+
+    #for site in csites:
+    #  log $$site.id & " " & site.structureType & " " & site.progressTotal - site.progress
 
     #for site in csites:
     #  log $$site.id & " " & site.structureType & " " & site.progressTotal - site.progress
@@ -489,9 +452,6 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   # no creeps needed and enough chargers available. move others to Upgrader
   if needCreeps == 0 and
     rstats.charging.len > 0 and rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
-      changeAction(rstats, Charge, Upgrade)
-
-  if rstats.charging.len > 0 and rstats.charging.len > minChargers and rstats.upgrading.len < minUpgraders:
       changeAction(rstats, Charge, Upgrade)
 
   if rstats.upgrading.len > 0 and rstats.upgrading.len > maxUpgraders:

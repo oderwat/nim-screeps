@@ -48,7 +48,7 @@ proc rolePirate*(creep: Creep, pirateTarget: RoomName) =
         log creep.name & "moves to attack (" & ret & ")"
         return
 
-  if creep.room.name == pirateTarget:
+  if creep.room.name == pirateTarget and creep.room.controller.my == false:
     # check if we have a spawn and a path to them
     hostileStructs = creep.room.find(Structure) do (struct: Structure) -> bool:
       struct.structureType == STRUCTURE_TYPE_SPAWN

@@ -1,4 +1,10 @@
+# nim check --verbosity:2 --hints:off
+#
+# A Part of Screeps Nim module
+#
 # Some stuff to extend how to deal with javascript from nim
+#
+# (c) 2016 by Hans Raaf (METATEXX GmbH)
 
 type
   JSAssoc*[Key, Val] = ref object

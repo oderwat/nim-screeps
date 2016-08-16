@@ -50,6 +50,7 @@ type
     role*: Roles
     action*: Actions
     targetId*: ObjId # Id of RoomObject
+    targetRoom*: RoomName # alternative Target (for migration)
     refilling*: bool
     sourceId*: ObjId # which (harvest) source to use
     slurpId*: ObjId # where to slurp (floor or container)

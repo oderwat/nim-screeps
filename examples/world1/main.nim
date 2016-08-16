@@ -18,11 +18,11 @@ import types
 import utils_stats
 
 # thats not in github... for reasons
-#include piratetarget
+include piratetarget
 when not declared(piratetarget):
   const pirateTarget = NOROOM
 
-const claimTarget = "W38N8".RoomName
+#const claimTarget = "W38N8".RoomName
 when not declared(claimTarget):
   const claimTarget = NOROOM
 
@@ -74,6 +74,53 @@ screepsLoop: # this conaints the main loop which is exported to the game
 
   # we need to handle pirates and claimers global
   gmem.creepStats = game.creeps.stats()
+
+  var wantImigrants = 0
+  #if room.name == "W38N8".RoomName and clevel < 5:
+    # do we want imigrant workers?
+  wantImigrants = 0
+
+  if wantImigrants > 0:
+    var candidates: CreepList = @[]
+    for creep in game.creeps:
+      var cm = creep.memory.CreepMemory
+      if cm.imigrant:
+        dec wantImigrants
+      elif cm.role == Worker:
+        # only creeps from our main rooms
+        if creep.room.name != "W39N7".RoomName and
+            creep.room.name != "W39N8".RoomName and
+            creep.room.name != "W38N7".RoomName:
+          continue
+        if creep.ticksToLive < 1000:
+          # no granies
+          continue
+        candidates.add creep
+
+    logH "imigration needs: " & wantImigrants
+
+    if wantImigrants > 0 and candidates.len > 0:
+      # need to send workers to imigration room
+      for creep in candidates:
+        if wantImigrants <= 0:
+          break
+
+        var cm = creep.memory.CreepMemory
+        # if it is an imigrand .. ok
+        # any creep for now
+        cm.action = Migrate
+        cm.targetId = nil
+        cm.targetRoom = "W38N8".RoomName
+        cm.refilling = true
+        cm.imigrant = true
+        dec wantImigrants
+        log creep.name & " was hired"
+
+      # this recalculates and replaces
+      # the creepStats objects when
+      # emigration hit our system
+      gmem.creepStats = game.creeps.stats()
+
 
   #
   # Running some tasks and the room Controller for each room we pocess
