@@ -51,6 +51,10 @@ proc cmdTester(txt: cstring): int =
 screepsLoop: # this conaints the main loop which is exported to the game
   #log game.time & " ticks (compiled at " & compiletime & ")", info
 
+  # collecting 100 ticks before running
+  if game.cpu.bucket < 100:
+    return
+
   #echo CONSTRUCTION_COST["road"]
   registerCmd("cmd", cmdTester)
 
@@ -121,7 +125,6 @@ screepsLoop: # this conaints the main loop which is exported to the game
       # emigration hit our system
       gmem.creepStats = game.creeps.stats()
 
-
   #
   # Running some tasks and the room Controller for each room we pocess
   #
@@ -149,6 +152,9 @@ screepsLoop: # this conaints the main loop which is exported to the game
     if creep.spawning: continue # still spawning
     if creep.ticksToLive < minTicks:
       minTicks = creep.ticksToLive
+
+   # if game.getUsed() > game.cpu.tickLimit * 0.8:
+   #   return
 
     case creep.cmem.role:
     of Worker: creep.roleWorker

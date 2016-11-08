@@ -460,7 +460,7 @@ proc roomControl*(room: Room, pirateTarget, claimTarget: RoomName) =
   if rstats.charging.len > 0  and rstats.charging.len > maxChargers:
     changeAction(rstats, Charge, Idle)
 
- # discard rstats.check(creeps.stats(), "adjust")
+  # discard rstats.check(creeps.stats(), "adjust")
 
   # we stop repairs if creeps are needed and there are to few chargers yet
   if clevel >= 2 and needCreeps == 0 and rstats.charging.len >= minChargers:

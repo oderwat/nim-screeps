@@ -65,6 +65,13 @@ when defined(screepsprofiler):
     replace("module.exports =","return") & "\n" .}
   {.emit: "}; var profiler = screepsProfiler();\n".}
 
+when not defined(skipperf):
+  {.emit: "function screepsPerf() {\n".}
+  {.emit: staticRead("screeps_perf.js").
+    replace("`","``").
+    replace("module.exports =","return") & "\n" .}
+  {.emit: "}; var perf = screepsPerf();\nperf({ speedUpArrayFunctions: false, cleanUpCreepMemory: false, optimizePathFinding: true});\n".}
+
 template screepsLoop*(code: untyped): untyped =
   proc screepsLoop() {.exportc.} =
     code
@@ -98,9 +105,9 @@ type
   RouteEntry* = ref RouteEntryObj
 
   CPUObj* {.exportc.} = object
-    limit*: int
-    tickLimit*: int
-    bucket*: int
+    limit*: float
+    tickLimit*: float
+    bucket*: float
   CPU* = ref CPUObj
 
   GlobalControlLevelObj {.exportc.} = object
@@ -518,6 +525,8 @@ var game* {.noDecl, importc: "Game".}: Game
 var memory* {.noDecl, importc: "Memory".}: Memory
 
 proc getObjectById*[T](game: Game, id: ObjId, what: typedesc[T]): T {.importcpp: "#.getObjectById(#)".}
+
+proc getUsed*(game: Game): float {.importcpp: "#.cpu.getUsed()".}
 
 proc findClosestByPath*[T](pos: RoomPosition, objs: seq[T]): T =
   {.emit: "`result` = `pos`.findClosestByPath(`objs`);\n".}
